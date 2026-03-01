@@ -84,19 +84,45 @@ python3 import_history.py    # Importiert alle Sessions in Qdrant
 python3 migrate_ontology.py  # Importiert bestehende graph.jsonl in FalkorDB
 ```
 
-## Visualisierung
-Das interaktive Dashboard ist im lokalen Netzwerk erreichbar:
-`http://<server-ip>:8000`
+## 🧠 Brain Dashboard
 
-- **Rot:** Personen
-- **Gelb:** Projekte
-- **Blau:** Sonstige Entitäten (Events, Tasks, Locations)
+Das neue **Clawdi Brain Dashboard** ist eine Full-Stack Web-Applikation:
+
+- **Neural Feed** – Semantische Suche durch alle Erinnerungen (Qdrant)
+- **Knowledge Vault** – Entity-Explorer für den Wissensgraphen (FalkorDB)
+- **Health Monitor** – System-Status, Temperaturverlauf, Learning-Log (SQLite)
+
+### Starten
+
+```bash
+# SQLite mit Demo-Daten befüllen
+python3 dashboard/seed_sqlite.py
+
+# Dashboard starten (Backend + Frontend)
+cd dashboard && podman compose up -d --build
+```
+
+Dashboard ist erreichbar unter: `http://<server-ip>:80`
+API-Docs: `http://<server-ip>:8080/docs`
+
+### Entwicklung (lokal)
+
+```bash
+# Backend
+cd dashboard/backend && pip install -r requirements.txt
+uvicorn main:app --reload --port 8080
+
+# Frontend (in separatem Terminal)
+cd dashboard/frontend && npm install && npm run dev
+```
 
 ## Ports
 
-| Service | Port | Externer Zugriff |
+| Service | Port | Beschreibung |
 |---|---|---|
-| Dashboard | 8000 | Ja (Firewall öffnen!) |
-| Qdrant | 6333 | Nein (Localhost) |
-| Ollama | 11434 | Nein (Localhost) |
-| FalkorDB | 6379 | Nein (Localhost) |
+| Dashboard UI | 80 | Nginx + React SPA |
+| Dashboard API | 8080 | FastAPI Backend |
+| Qdrant | 6333 | Vektor-Datenbank |
+| Ollama | 11434 | Embedding-Engine |
+| FalkorDB | 6379 | Graph-Datenbank |
+

@@ -1,0 +1,36 @@
+# ============================================================================
+# Clawdi Brain Dashboard – Docker Compose / Podman Compose
+# ============================================================================
+# Voraussetzung: Qdrant, FalkorDB und Ollama laufen bereits (via setup.sh).
+# Start:  podman compose up -d --build
+# ============================================================================
+
+services:
+  dashboard-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clawdi-dashboard-api
+    restart: always
+    network_mode: host
+    environment:
+      - QDRANT_HOST=127.0.0.1
+      - QDRANT_PORT=6333
+      - FALKOR_HOST=127.0.0.1
+      - FALKOR_PORT=6379
+      - OLLAMA_URL=http://127.0.0.1:11434
+      - SQLITE_PATH=/data/short_term.db
+      - API_PORT=8080
+      - CORS_ORIGINS=*
+    volumes:
+      - ${HOME}/.openclaw:/data:ro
+
+  dashboard-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clawdi-dashboard-ui
+    restart: always
+    network_mode: host
+    depends_on:
+      - dashboard-backend

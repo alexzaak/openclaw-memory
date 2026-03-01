@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* ── Clawdi Design Tokens ─────────────────────────────────────────── */
+@theme {
+  --color-clawdi-bg:        #060a14;
+  --color-clawdi-surface:   #0d1321;
+  --color-clawdi-card:      #141c2e;
+  --color-clawdi-border:    #1e2a42;
+  --color-clawdi-hover:     #1a2540;
+
+  --color-clawdi-blue:      #00b4d8;
+  --color-clawdi-blue-dim:  #0077b6;
+  --color-clawdi-amber:     #f5a623;
+  --color-clawdi-amber-dim: #c98a1a;
+  --color-clawdi-red:       #ef4444;
+  --color-clawdi-green:     #22c55e;
+  --color-clawdi-purple:    #a78bfa;
+
+  --color-clawdi-text:      #e2e8f0;
+  --color-clawdi-text-dim:  #8492a6;
+  --color-clawdi-text-muted:#4a5568;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-clawdi-bg);
+  color: var(--color-clawdi-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-clawdi-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-clawdi-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-clawdi-blue-dim);
+}
+
+/* ── Animations ───────────────────────────────────────────────────── */
+
+@keyframes neural-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50%      { opacity: 1;   transform: scale(1.05); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 180, 216, 0.15); }
+  50%      { box-shadow: 0 0 20px rgba(0, 180, 216, 0.35); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.3s ease-out both;
+}
+
+.animate-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-neural-pulse {
+  animation: neural-pulse 2s ease-in-out infinite;
+}
+
+/* Stagger children */
+.stagger-children > * {
+  animation: fade-in 0.4s ease-out both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.40s; }
+
+/* ── Glass Surface ─────────────────────────────────────────────── */
+
+.glass-surface {
+  background: rgba(13, 19, 33, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-clawdi-border);
+}
