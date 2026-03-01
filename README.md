@@ -1,118 +1,102 @@
 # 🧠 AI Memory – Lokales Gedächtnis für OpenClaw
 
-Automatische Vektorisierung und lokale Suche aller OpenClaw-Chat-Einträge.
+Vollautomatisches, semantisches und strukturiertes Langzeitgedächtnis für Clawdi (OpenClaw).
 
 ## Architektur
+
+Das System besteht aus drei Kern-Komponenten, die Hand in Hand arbeiten:
+
+1.  **Auto-Memory (Vektor-Suche):** Jede Chat-Nachricht wird in Echtzeit vektorisiert und in Qdrant gespeichert. Erlaubt semantische Suche ("Gefühlssuche").
+2.  **Wissensgraph (Struktur):** Fakten und Beziehungen (Personen, Projekte, Hardware) werden in FalkorDB (Graph-DB) gespeichert.
+3.  **REM-Schlaf (Synthese):** Ein nächtlicher Cron-Job analysiert die Tages-Chats und überführt neue Erkenntnisse automatisch in den Wissensgraphen.
 
 ```
 ┌─────────────────────┐    watchdog     ┌──────────────────┐
 │  JSONL Sessions     │ ──────────────► │  memory_watcher  │
-│  (OpenClaw Agent)   │   Dateiänderung │  (Python)        │
+│  (OpenClaw Agent)   │   Dateiänderung │  (Python Service)│
 └─────────────────────┘                 └────────┬─────────┘
                                                  │
-                                    ┌────────────┼────────────┐
-                                    ▼                         ▼
-                           ┌────────────────┐      ┌─────────────────┐
-                           │  Ollama        │      │  Qdrant         │
-                           │  nomic-embed   │      │  Vector DB      │
-                           │  :11434        │      │  :6333          │
-                           └────────────────┘      └─────────────────┘
+            ┌────────────────────────────────────┼────────────────────────────────────┐
+            ▼                                    ▼                                    ▼
+   ┌────────────────┐                  ┌─────────────────┐                  ┌──────────────────┐
+   │  Ollama        │                  │  Qdrant         │                  │  FalkorDB        │
+   │  nomic-embed   │                  │  Vector DB      │                  │  Graph DB        │
+   │  :11434        │                  │  :6333          │                  │  :6379           │
+   └────────────────┘                  └─────────────────┘                  └──────────────────┘
+            │                                                                         │
+            └────────────────────────────────────┬────────────────────────────────────┘
+                                                 ▼
+                                       ┌──────────────────┐
+                                       │  Brain Dashboard │
+                                       │  (Nginx / Port 8000)
+                                       └──────────────────┘
 ```
 
-## Voraussetzungen
+## Komponenten & Tools
 
-- **Fedora Linux** mit **Podman** (`sudo dnf install podman`)
-- **Python 3.10+** (`sudo dnf install python3 python3-pip`)
-- **curl** (für Health-Checks im Setup-Skript)
+### 🏗️ Infrastruktur (Podman)
+- **Qdrant:** Vektor-Datenbank für semantische Suche.
+- **Ollama:** Lokale Embedding-Engine (`nomic-embed-text`).
+- **FalkorDB:** Hochperformante Graph-Datenbank für Ontologien.
+- **Nginx:** Webserver für die Visualisierung.
+
+### 🐍 Python Core
+- `memory_watcher.py`: Überwacht die Session-Files und füttert Qdrant.
+- `falkor_client.py`: Interface für Cypher-Abfragen an die Graph-DB.
+- `graph_rem_sleep.py`: Der "REM-Prozessor" für die nächtliche Fakten-Extraktion.
+- `generate_brain_map.py`: Generiert die interaktive HTML-Visualisierung.
 
 ## Schnellstart
 
-### 1. Container starten
+### 1. Vorbereiten (Fedora LVM-Fix)
+Fedora weist der Root-Partition oft nur 15GB zu. Für die Container-Images sollte der Speicher erweitert werden:
+```bash
+sudo lvextend -l +100%FREE /dev/mapper/fedora_nova-root
+sudo xfs_growfs /
+```
 
+### 2. Infrastruktur starten
 ```bash
 bash setup.sh
 ```
+Dies startet alle Container und lädt die benötigten KI-Modelle.
 
-Startet **Qdrant** und **Ollama** als Podman-Container und lädt das Embedding-Modell `nomic-embed-text`.
-
-### 2. Python-Dependencies installieren
-
+### 3. Dependencies & Service
 ```bash
 pip install -r requirements.txt
+# Watcher als User-Service starten
+systemctl --user enable --now clawdi-memory.service
 ```
 
-### 3. Watcher starten
+## Wartung & Betrieb
 
+### Nächtliche Analyse (REM-Schlaf)
+Ein Cron-Job (empfohlen 23:30 Uhr) sollte folgendes Kommando ausführen:
 ```bash
-python memory_watcher.py
+# Extrahiert heute gelernte Fakten und aktualisiert den Graphen + Dashboard
+python3 graph_rem_sleep.py process_today
 ```
 
-Der Watcher überwacht nun `/home/clawdi/.openclaw/agents/main/sessions/` und vektorisiert automatisch jeden neuen Chat-Eintrag.
-
-## Optionen
-
-| Flag | Beschreibung |
-|---|---|
-| `--sessions-dir /pfad` | Alternatives Sessions-Verzeichnis |
-| `--dry-run` | Nur parsen, kein Embedding/Storage |
-
-## Daten in Qdrant abfragen
-
+### Migration alter Daten
+Um bestehende JSONL-Logs oder Markdown-Dateien zu importieren:
 ```bash
-# Anzahl gespeicherter Punkte
-curl http://localhost:6333/collections/openclaw_memory/points/count
-
-# Collection-Info
-curl http://localhost:6333/collections/openclaw_memory
+python3 import_history.py    # Importiert alle Sessions in Qdrant
+python3 migrate_ontology.py  # Importiert bestehende graph.jsonl in FalkorDB
 ```
 
-### Semantische Suche (Beispiel mit Python)
+## Visualisierung
+Das interaktive Dashboard ist im lokalen Netzwerk erreichbar:
+`http://<server-ip>:8000`
 
-```python
-from qdrant_client import QdrantClient
-import requests
+- **Rot:** Personen
+- **Gelb:** Projekte
+- **Blau:** Sonstige Entitäten (Events, Tasks, Locations)
 
-client = QdrantClient(host="localhost", port=6333)
+## Ports
 
-# Suchtext → Embedding
-query = "Wie funktioniert die Authentifizierung?"
-resp = requests.post(
-    "http://localhost:11434/api/embed",
-    json={"model": "nomic-embed-text", "input": query},
-)
-vector = resp.json()["embeddings"][0]
-
-# Suche in Qdrant
-results = client.query_points(
-    collection_name="openclaw_memory",
-    query=vector,
-    limit=5,
-)
-
-for point in results.points:
-    print(f"[{point.payload['sender']}] {point.payload['text'][:100]}")
-```
-
-## Container verwalten
-
-```bash
-# Status prüfen
-podman ps
-
-# Container stoppen
-podman stop qdrant ollama
-
-# Container neustarten
-podman start qdrant ollama
-
-# Logs ansehen
-podman logs -f qdrant
-podman logs -f ollama
-```
-
-## Datenverzeichnisse
-
-| Pfad | Inhalt |
-|---|---|
-| `/home/clawdi/.qdrant_storage` | Qdrant-Datenbank (persistiert) |
-| `/home/clawdi/.openclaw/agents/main/sessions/` | OpenClaw JSONL-Dateien |
+| Service | Port | Externer Zugriff |
+|---|---|---|
+| Dashboard | 8000 | Ja (Firewall öffnen!) |
+| Qdrant | 6333 | Nein (Localhost) |
+| Ollama | 11434 | Nein (Localhost) |
+| FalkorDB | 6379 | Nein (Localhost) |
