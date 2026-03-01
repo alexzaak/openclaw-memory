@@ -1,3 +1,4 @@
 watchdog>=4.0.0
 qdrant-client>=1.9.0
 requests>=2.31.0
+falkordb>=1.6.0
