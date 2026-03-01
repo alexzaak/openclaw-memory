@@ -40,12 +40,12 @@ from watchdog.observers import Observer
 # ── Konfiguration ──────────────────────────────────────────────────────────
 
 DEFAULT_SESSIONS_DIR = "/home/clawdi/.openclaw/agents/main/sessions/"
-OLLAMA_URL = "http://localhost:11434"
+OLLAMA_URL = "http://127.0.0.1:11434"
 OLLAMA_EMBED_ENDPOINT = f"{OLLAMA_URL}/api/embed"
 EMBED_MODEL = "nomic-embed-text"
 EMBED_DIMENSION = 768
 
-QDRANT_HOST = "localhost"
+QDRANT_HOST = "127.0.0.1"
 QDRANT_PORT = 6333
 COLLECTION_NAME = "openclaw_memory"
 
@@ -110,40 +110,30 @@ def parse_jsonl_entry(line: str) -> dict[str, Any] | None:
         log.warning("Ungültiges JSON: %s", e)
         return None
 
-    # Flexibles Parsing: verschiedene JSONL-Formate unterstützen
-    text = (
-        data.get("content")
-        or data.get("text")
-        or data.get("message")
-        or data.get("body")
-    )
-
-    if not text:
-        # Falls das JSON verschachtelt ist (z.B. {"message": {"content": "..."}})
-        msg = data.get("message")
-        if isinstance(msg, dict):
-            text = msg.get("content") or msg.get("text")
-
-    if not text or not isinstance(text, str) or not text.strip():
-        log.debug("Kein verwertbarer Text in Zeile gefunden – überspringe.")
+    # OpenClaw Format: data["message"]["content"] = [{"type": "text", "text": "..."}]
+    msg = data.get("message")
+    if not isinstance(msg, dict):
         return None
 
-    sender = (
-        data.get("sender")
-        or data.get("role")
-        or data.get("author")
-        or "unknown"
-    )
+    content_blocks = msg.get("content")
+    if not isinstance(content_blocks, list):
+        return None
 
-    timestamp = (
-        data.get("timestamp")
-        or data.get("created_at")
-        or data.get("time")
-        or datetime.now(timezone.utc).isoformat()
-    )
+    # Extrahiere alle Text-Blöcke
+    text_parts = []
+    for block in content_blocks:
+        if isinstance(block, dict) and block.get("type") == "text":
+            text_parts.append(block.get("text", ""))
+
+    text = "\n".join(text_parts).strip()
+    if not text:
+        return None
+
+    sender = msg.get("role") or "unknown"
+    timestamp = data.get("timestamp") or datetime.now(timezone.utc).isoformat()
 
     return {
-        "text": text.strip(),
+        "text": text,
         "sender": sender,
         "timestamp": str(timestamp),
     }

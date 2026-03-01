@@ -70,7 +70,7 @@ start_qdrant() {
 
     info "Warte auf Qdrant (Port $QDRANT_PORT_HTTP) …"
     for i in $(seq 1 30); do
-        if curl -sf "http://localhost:${QDRANT_PORT_HTTP}/healthz" > /dev/null 2>&1; then
+        if curl -sf "http://127.0.0.1:${QDRANT_PORT_HTTP}/healthz" > /dev/null 2>&1; then
             info "Qdrant ist bereit ✓"
             return
         fi
@@ -102,7 +102,7 @@ start_ollama() {
 
     info "Warte auf Ollama (Port $OLLAMA_PORT) …"
     for i in $(seq 1 30); do
-        if curl -sf "http://localhost:${OLLAMA_PORT}/" > /dev/null 2>&1; then
+        if curl -sf "http://127.0.0.1:${OLLAMA_PORT}/" > /dev/null 2>&1; then
             info "Ollama ist bereit ✓"
             break
         fi
@@ -137,8 +137,8 @@ main() {
     echo "=============================================="
     info "Setup abgeschlossen! 🚀"
     echo ""
-    info "Qdrant:  http://localhost:${QDRANT_PORT_HTTP}"
-    info "Ollama:  http://localhost:${OLLAMA_PORT}"
+    info "Qdrant:  http://127.0.0.1:${QDRANT_PORT_HTTP}"
+    info "Ollama:  http://127.0.0.1:${OLLAMA_PORT}"
     echo ""
     info "Nächster Schritt:"
     info "  pip install -r requirements.txt"

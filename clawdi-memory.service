@@ -1,0 +1,14 @@
+[Unit]
+Description=Clawdi AI Memory Watcher
+After=network.target
+
+[Service]
+Type=simple
+User=clawdi
+WorkingDirectory=/home/clawdi/.openclaw/workspace/openclaw-memory
+ExecStart=/usr/bin/python3 memory_watcher.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
