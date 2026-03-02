@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../hooks/useApi'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorBox from '../components/ErrorBox'
+import DailyContextWidget from '../components/DailyContextWidget'
 
 /* ── Sparkline Mini-Chart ──────────────────────────────────────── */
 function Sparkline({ data, color = '#00b4d8', height = 40 }) {
@@ -126,8 +127,8 @@ function LearningEntry({ entry, index }) {
                     )}
                     {entry.mood_score && (
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${entry.mood_score >= 7 ? 'bg-green-500/10 text-green-400' :
-                                entry.mood_score >= 4 ? 'bg-clawdi-amber/10 text-clawdi-amber' :
-                                    'bg-red-500/10 text-red-400'
+                            entry.mood_score >= 4 ? 'bg-clawdi-amber/10 text-clawdi-amber' :
+                                'bg-red-500/10 text-red-400'
                             }`}>
                             Mood: {entry.mood_score}/10
                         </span>
@@ -223,6 +224,11 @@ export default function HealthMonitor() {
                     icon="🗃️"
                     color="#00b4d8"
                 />
+            </div>
+
+            {/* Daily Context */}
+            <div className="mb-8 bg-clawdi-surface border border-clawdi-border rounded-xl p-5">
+                <DailyContextWidget />
             </div>
 
             {/* Two-column: System State + Learning Log */}
