@@ -102,3 +102,22 @@ def get_learning_log(limit: int = 20) -> list[dict]:
             (limit,),
         ).fetchall()
         return [dict(row) for row in rows]
+
+def get_daily_context(scope: str | None = None, limit: int = 50) -> list[dict]:
+    """Return recent daily_context entries."""
+    with _get_conn() as conn:
+        try:
+            if scope:
+                rows = conn.execute(
+                    "SELECT id, timestamp, scope, content FROM daily_context WHERE scope = ? ORDER BY timestamp DESC LIMIT ?",
+                    (scope, limit)
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, timestamp, scope, content FROM daily_context ORDER BY timestamp DESC LIMIT ?",
+                    (limit,)
+                ).fetchall()
+            return [dict(row) for row in rows]
+        except sqlite3.OperationalError:
+            # Table might not exist yet if migration failed or DB is locked
+            return []
