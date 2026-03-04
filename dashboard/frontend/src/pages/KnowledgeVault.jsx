@@ -199,7 +199,7 @@ function StatsBar({ stats }) {
     if (!stats || stats.error) return null
 
     return (
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-2 md:gap-3 mb-6">
             <div className="bg-clawdi-card border border-clawdi-border rounded-lg px-4 py-2.5 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-clawdi-blue" />
                 <span className="text-sm font-mono text-clawdi-text">{stats.node_count}</span>
@@ -281,9 +281,9 @@ export default function KnowledgeVault() {
             <StatsBar stats={stats} />
 
             {/* Filters */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
                 {/* Search */}
-                <div className="relative flex-1 max-w-sm">
+                <div className="relative flex-1 sm:max-w-sm">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-clawdi-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
@@ -298,12 +298,12 @@ export default function KnowledgeVault() {
                 </div>
 
                 {/* Label filter chips */}
-                <div className="flex gap-1.5">
+                <div className="flex flex-wrap gap-1.5">
                     <button
                         onClick={() => setActiveLabel(null)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${!activeLabel
-                                ? 'bg-clawdi-blue/15 text-clawdi-blue border border-clawdi-blue/30'
-                                : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
+                            ? 'bg-clawdi-blue/15 text-clawdi-blue border border-clawdi-blue/30'
+                            : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
                             }`}
                     >
                         Alle
@@ -315,8 +315,8 @@ export default function KnowledgeVault() {
                                 key={label}
                                 onClick={() => setActiveLabel(activeLabel === label ? null : label)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1 ${activeLabel === label
-                                        ? `${style.bg} ${style.text} border ${style.border}`
-                                        : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
+                                    ? `${style.bg} ${style.text} border ${style.border}`
+                                    : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
                                     }`}
                             >
                                 <span className="text-xs">{style.icon}</span>

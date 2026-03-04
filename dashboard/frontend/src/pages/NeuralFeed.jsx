@@ -95,7 +95,7 @@ export default function NeuralFeed() {
     return (
         <div className="max-w-4xl mx-auto">
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-5 md:mb-8">
                 <h2 className="text-2xl font-bold text-clawdi-text flex items-center gap-3">
                     <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-clawdi-blue/20 to-clawdi-purple/20 flex items-center justify-center text-lg border border-clawdi-blue/20">
                         ✨

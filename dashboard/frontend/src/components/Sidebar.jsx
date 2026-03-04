@@ -30,48 +30,79 @@ const navItems = [
     },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
     return (
-        <aside className="w-64 h-screen fixed left-0 top-0 bg-clawdi-surface border-r border-clawdi-border flex flex-col z-50">
-            {/* Logo */}
-            <div className="p-5 border-b border-clawdi-border">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-clawdi-blue to-clawdi-purple flex items-center justify-center text-lg animate-glow">
-                        🧠
-                    </div>
-                    <div>
-                        <h1 className="text-base font-semibold text-clawdi-text tracking-tight">Clawdi Brain</h1>
-                        <p className="text-[11px] text-clawdi-text-muted font-mono">OpenClaw Memory v1.0</p>
-                    </div>
-                </div>
-            </div>
+        <>
+            {/* Backdrop – mobile only */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                    onClick={onClose}
+                />
+            )}
 
-            {/* Navigation */}
-            <nav className="flex-1 p-3 space-y-1">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.to}
-                        to={item.to}
-                        className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${isActive
-                                ? 'bg-clawdi-blue/10 text-clawdi-blue border border-clawdi-blue/20'
-                                : 'text-clawdi-text-dim hover:text-clawdi-text hover:bg-clawdi-hover border border-transparent'
-                            }`
-                        }
+            <aside
+                className={`
+                    w-64 h-screen fixed left-0 top-0
+                    bg-clawdi-surface border-r border-clawdi-border
+                    flex flex-col z-50
+                    transition-transform duration-300 ease-in-out
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                    md:translate-x-0
+                `}
+            >
+                {/* Logo */}
+                <div className="p-5 border-b border-clawdi-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-clawdi-blue to-clawdi-purple flex items-center justify-center text-lg animate-glow">
+                            🧠
+                        </div>
+                        <div>
+                            <h1 className="text-base font-semibold text-clawdi-text tracking-tight">Clawdi Brain</h1>
+                            <p className="text-[11px] text-clawdi-text-muted font-mono">OpenClaw Memory v1.0</p>
+                        </div>
+                    </div>
+
+                    {/* Close button – mobile only */}
+                    <button
+                        onClick={onClose}
+                        className="w-8 h-8 rounded-lg bg-clawdi-card border border-clawdi-border flex items-center justify-center text-clawdi-text-dim hover:text-clawdi-text hover:bg-clawdi-hover transition-all cursor-pointer md:hidden"
+                        aria-label="Menü schließen"
                     >
-                        <span className="transition-transform group-hover:scale-110">{item.icon}</span>
-                        {item.label}
-                    </NavLink>
-                ))}
-            </nav>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-clawdi-border">
-                <div className="flex items-center gap-2 text-xs text-clawdi-text-muted">
-                    <div className="w-2 h-2 rounded-full bg-clawdi-green animate-pulse" />
-                    System Online
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-            </div>
-        </aside>
+
+                {/* Navigation */}
+                <nav className="flex-1 p-3 space-y-1">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            onClick={onClose}
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group ${isActive
+                                    ? 'bg-clawdi-blue/10 text-clawdi-blue border border-clawdi-blue/20'
+                                    : 'text-clawdi-text-dim hover:text-clawdi-text hover:bg-clawdi-hover border border-transparent'
+                                }`
+                            }
+                        >
+                            <span className="transition-transform group-hover:scale-110">{item.icon}</span>
+                            {item.label}
+                        </NavLink>
+                    ))}
+                </nav>
+
+                {/* Footer */}
+                <div className="p-4 border-t border-clawdi-border">
+                    <div className="flex items-center gap-2 text-xs text-clawdi-text-muted">
+                        <div className="w-2 h-2 rounded-full bg-clawdi-green animate-pulse" />
+                        System Online
+                    </div>
+                </div>
+            </aside>
+        </>
     )
 }
