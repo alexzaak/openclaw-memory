@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-migrate_ontology.py – Migriert Daten von graph.jsonl in FalkorDB
-================================================================
+migrate_ontology.py – Migrates data from graph.jsonl into FalkorDB
+===================================================================
 
-Liest die bestehende Ontologie (JSONL) und überführt sie in den 
-neuen FalkorDB-Graphen.
+Reads the existing ontology (JSONL) and transfers it into the
+new FalkorDB graph.
 """
 
 import json
@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from falkor_client import FalkorMemory
 
-# ── Konfiguration ──────────────────────────────────────────────────────────
+# ── Configuration ──────────────────────────────────────────────────────────
 
 ONTOLOGY_FILE = "/home/clawdi/.openclaw/workspace/memory/ontology/graph.jsonl"
 
@@ -30,13 +30,13 @@ log = logging.getLogger("migration")
 
 def migrate():
     if not os.path.exists(ONTOLOGY_FILE):
-        log.error(f"Ontologie-Datei nicht gefunden: {ONTOLOGY_FILE}")
+        log.error(f"Ontology file not found: {ONTOLOGY_FILE}")
         return
 
     client = FalkorMemory()
-    log.info("Starte Migration von JSONL zu FalkorDB...")
+    log.info("Starting migration from JSONL to FalkorDB...")
 
-    # Zuerst alle Knoten importieren
+    # First import all nodes
     nodes_imported = 0
     relations_imported = 0
 
@@ -44,30 +44,30 @@ def migrate():
         lines = f.readlines()
 
     # Pass 1: Nodes
-    log.info("Schritt 1: Knoten erstellen...")
+    log.info("Step 1: Creating nodes...")
     for line in lines:
         try:
             data = json.loads(line)
             if data.get("op") == "create":
                 entity = data["entity"]
-                # Wir mappen 'id' auf eine Eigenschaft 'ext_id' in FalkorDB
-                # um sie später für Verknüpfungen nutzen zu können.
+                # Map 'id' to an 'ext_id' property in FalkorDB
+                # so we can use it for linking later.
                 props = entity.get("properties", {})
                 props["ext_id"] = entity["id"]
                 
-                # Cypher für Node creation
+                # Cypher for node creation
                 label = entity["type"]
                 props_str = ", ".join([f"{k}: {json.dumps(v)}" for k, v in props.items()])
                 cypher = f"MERGE (n:{label} {{ext_id: '{entity['id']}'}}) SET n += {{{props_str}}}"
                 client.query(cypher)
                 nodes_imported += 1
         except Exception as e:
-            log.warning(f"Fehler beim Importieren eines Knotens: {e}")
+            log.warning(f"Error importing node: {e}")
 
-    log.info(f"{nodes_imported} Knoten verarbeitet.")
+    log.info(f"{nodes_imported} nodes processed.")
 
     # Pass 2: Relations
-    log.info("Schritt 2: Beziehungen verknüpfen...")
+    log.info("Step 2: Linking relationships...")
     for line in lines:
         try:
             data = json.loads(line)
@@ -84,10 +84,10 @@ def migrate():
                 client.query(cypher)
                 relations_imported += 1
         except Exception as e:
-            log.warning(f"Fehler beim Verknüpfen einer Beziehung: {e}")
+            log.warning(f"Error linking relationship: {e}")
 
-    log.info(f"{relations_imported} Beziehungen verarbeitet.")
-    log.info("Migration abgeschlossen! 🚀")
+    log.info(f"{relations_imported} relationships processed.")
+    log.info("Migration complete! 🚀")
 
 if __name__ == "__main__":
     migrate()

@@ -59,7 +59,7 @@ function EntityCard({ entity, onClick, index }) {
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.012-3.072a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364l1.757 1.757" />
                         </svg>
-                        {entity.connection_count} Verbindungen
+                        {entity.connection_count} Connections
                     </div>
                 </div>
             </div>
@@ -88,7 +88,7 @@ function EntityDetail({ entityId, onClose, onNavigate }) {
         load()
     }, [entityId])
 
-    if (loading) return <div className="p-6"><LoadingSpinner label="Lade Entität…" /></div>
+    if (loading) return <div className="p-6"><LoadingSpinner label="Loading entity…" /></div>
     if (error) return <div className="p-6"><ErrorBox message={error} /></div>
     if (!data) return null
 
@@ -138,7 +138,7 @@ function EntityDetail({ entityId, onClose, onNavigate }) {
 
                 {/* Properties */}
                 <div className="p-5 border-b border-clawdi-border">
-                    <h3 className="text-xs font-semibold text-clawdi-text-dim uppercase tracking-wider mb-3">Eigenschaften</h3>
+                    <h3 className="text-xs font-semibold text-clawdi-text-dim uppercase tracking-wider mb-3">Properties</h3>
                     <div className="grid grid-cols-2 gap-2">
                         {Object.entries(data.properties || {}).map(([key, value]) => (
                             <div key={key} className="bg-clawdi-card rounded-lg p-2.5 border border-clawdi-border">
@@ -152,7 +152,7 @@ function EntityDetail({ entityId, onClose, onNavigate }) {
                 {/* Connections */}
                 <div className="p-5">
                     <h3 className="text-xs font-semibold text-clawdi-text-dim uppercase tracking-wider mb-3">
-                        Verknüpfungen ({data.connections?.length || 0})
+                        Connections ({data.connections?.length || 0})
                     </h3>
 
                     {Object.entries(connectionsByType).map(([relType, conns]) => (
@@ -186,7 +186,7 @@ function EntityDetail({ entityId, onClose, onNavigate }) {
                     ))}
 
                     {(!data.connections || data.connections.length === 0) && (
-                        <p className="text-sm text-clawdi-text-muted py-4 text-center">Keine Verknüpfungen vorhanden.</p>
+                        <p className="text-sm text-clawdi-text-muted py-4 text-center">No connections found.</p>
                     )}
                 </div>
             </div>
@@ -203,12 +203,12 @@ function StatsBar({ stats }) {
             <div className="bg-clawdi-card border border-clawdi-border rounded-lg px-4 py-2.5 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-clawdi-blue" />
                 <span className="text-sm font-mono text-clawdi-text">{stats.node_count}</span>
-                <span className="text-xs text-clawdi-text-dim">Knoten</span>
+                <span className="text-xs text-clawdi-text-dim">Nodes</span>
             </div>
             <div className="bg-clawdi-card border border-clawdi-border rounded-lg px-4 py-2.5 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-clawdi-amber" />
                 <span className="text-sm font-mono text-clawdi-text">{stats.edge_count}</span>
-                <span className="text-xs text-clawdi-text-dim">Kanten</span>
+                <span className="text-xs text-clawdi-text-dim">Edges</span>
             </div>
             {Object.entries(stats.labels || {}).map(([label, count]) => {
                 const style = getLabelStyle(label)
@@ -273,7 +273,7 @@ export default function KnowledgeVault() {
                     Knowledge Vault
                 </h2>
                 <p className="mt-2 text-sm text-clawdi-text-dim">
-                    Wissensgraph Explorer – Personen, Projekte, Tasks und ihre Verknüpfungen
+                    Knowledge Graph Explorer – People, Projects, Tasks and their connections
                 </p>
             </div>
 
@@ -292,7 +292,7 @@ export default function KnowledgeVault() {
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Entität suchen…"
+                        placeholder="Search entities…"
                         className="w-full pl-9 pr-4 py-2 text-sm bg-clawdi-card border border-clawdi-border rounded-lg text-clawdi-text placeholder-clawdi-text-muted focus:outline-none focus:border-clawdi-blue/40"
                     />
                 </div>
@@ -328,7 +328,7 @@ export default function KnowledgeVault() {
             </div>
 
             {/* Entity Grid */}
-            {loading && <LoadingSpinner label="Lade Wissensgraph…" />}
+            {loading && <LoadingSpinner label="Loading knowledge graph…" />}
             {error && <ErrorBox message={error} onRetry={loadEntities} />}
 
             {!loading && !error && (
@@ -347,7 +347,7 @@ export default function KnowledgeVault() {
             {!loading && !error && entities.length === 0 && (
                 <div className="text-center py-16">
                     <div className="text-4xl mb-4">🕸️</div>
-                    <p className="text-clawdi-text-dim text-sm">Keine Entitäten gefunden.</p>
+                    <p className="text-clawdi-text-dim text-sm">No entities found.</p>
                 </div>
             )}
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-memory_watcher.py – Lokales AI-Gedächtnis für OpenClaw
-======================================================
+memory_watcher.py – Local AI Memory for OpenClaw
+=================================================
 
-Überwacht JSONL-Dateien im OpenClaw-Session-Verzeichnis.
-Bei jeder Änderung wird die neueste Zeile gelesen, über Ollama
-in einen Vektor umgewandelt und in Qdrant gespeichert.
+Watches JSONL files in the OpenClaw session directory.
+On every change, the latest line is read, converted into a vector
+via Ollama, and stored in Qdrant.
 
-Nutzung:
+Usage:
     python memory_watcher.py
-    python memory_watcher.py --sessions-dir /pfad/zu/sessions
-    python memory_watcher.py --dry-run   # Nur parsen, kein Embedding/Storage
+    python memory_watcher.py --sessions-dir /path/to/sessions
+    python memory_watcher.py --dry-run   # Parse only, no embedding/storage
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from qdrant_client.models import (
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
-# ── Konfiguration ──────────────────────────────────────────────────────────
+# ── Configuration ──────────────────────────────────────────────────────────
 
 DEFAULT_SESSIONS_DIR = "/home/clawdi/.openclaw/agents/main/sessions/"
 OLLAMA_URL = "http://127.0.0.1:11434"
@@ -58,26 +58,26 @@ logging.basicConfig(
 )
 log = logging.getLogger("memory_watcher")
 
-# ── Hilfsklassen ────────────────────────────────────────────────────────────
+# ── Helper Classes ──────────────────────────────────────────────────────────
 
 
 def make_point_id(session_id: str, timestamp: str, text: str) -> str:
-    """Erzeugt eine deterministische UUID aus session_id + timestamp + text-Hash."""
+    """Creates a deterministic UUID from session_id + timestamp + text hash."""
     raw = f"{session_id}::{timestamp}::{hashlib.sha256(text.encode()).hexdigest()}"
     return str(uuid.uuid5(uuid.NAMESPACE_URL, raw))
 
 
 def read_last_line(filepath: Path) -> str | None:
-    """Liest effizient die letzte nicht-leere Zeile einer Datei."""
+    """Efficiently reads the last non-empty line of a file."""
     try:
         with open(filepath, "rb") as f:
-            # Zum Ende springen
+            # Seek to end
             f.seek(0, 2)
             file_size = f.tell()
             if file_size == 0:
                 return None
 
-            # Rückwärts lesen bis wir eine vollständige Zeile haben
+            # Read backwards until we have a complete line
             pos = file_size - 1
             lines_found = 0
 
@@ -87,27 +87,27 @@ def read_last_line(filepath: Path) -> str | None:
                 if char == b"\n":
                     lines_found += 1
                     if lines_found == 1:
-                        # Erste Newline von hinten = Ende der letzten Zeile
-                        # Weiter suchen nach dem Start der letzten Zeile
+                        # First newline from end = end of last line
+                        # Keep searching for the start of the last line
                         pass
                     elif lines_found == 2:
-                        # Zweite Newline = Start der letzten Zeile
+                        # Second newline = start of last line
                         break
                 pos -= 1
 
             line = f.readline().decode("utf-8").strip()
             return line if line else None
     except OSError as e:
-        log.error("Fehler beim Lesen von %s: %s", filepath, e)
+        log.error("Error reading %s: %s", filepath, e)
         return None
 
 
 def parse_jsonl_entry(line: str) -> dict[str, Any] | None:
-    """Parst eine JSONL-Zeile und extrahiert die relevanten Felder."""
+    """Parses a JSONL line and extracts the relevant fields."""
     try:
         data = json.loads(line)
     except json.JSONDecodeError as e:
-        log.warning("Ungültiges JSON: %s", e)
+        log.warning("Invalid JSON: %s", e)
         return None
 
     # OpenClaw Format: data["message"]["content"] = [{"type": "text", "text": "..."}]
@@ -119,7 +119,7 @@ def parse_jsonl_entry(line: str) -> dict[str, Any] | None:
     if not isinstance(content_blocks, list):
         return None
 
-    # Extrahiere alle Text-Blöcke
+    # Extract all text blocks
     text_parts = []
     for block in content_blocks:
         if isinstance(block, dict) and block.get("type") == "text":
@@ -143,7 +143,7 @@ def parse_jsonl_entry(line: str) -> dict[str, Any] | None:
 
 
 def get_embedding(text: str) -> list[float] | None:
-    """Erzeugt ein Embedding über die lokale Ollama-API."""
+    """Creates an embedding via the local Ollama API."""
     try:
         resp = requests.post(
             OLLAMA_EMBED_ENDPOINT,
@@ -153,19 +153,19 @@ def get_embedding(text: str) -> list[float] | None:
         resp.raise_for_status()
         data = resp.json()
 
-        # Ollama /api/embed gibt {"embeddings": [[...]]} zurück
+        # Ollama /api/embed returns {"embeddings": [[...]]}
         embeddings = data.get("embeddings")
         if embeddings and len(embeddings) > 0:
             return embeddings[0]
 
-        log.error("Unerwartete Ollama-Antwort: %s", data)
+        log.error("Unexpected Ollama response: %s", data)
         return None
 
     except requests.ConnectionError:
-        log.error("Ollama nicht erreichbar unter %s – läuft der Container?", OLLAMA_URL)
+        log.error("Ollama not reachable at %s – is the container running?", OLLAMA_URL)
         return None
     except requests.RequestException as e:
-        log.error("Ollama-Fehler: %s", e)
+        log.error("Ollama error: %s", e)
         return None
 
 
@@ -173,18 +173,18 @@ def get_embedding(text: str) -> list[float] | None:
 
 
 class QdrantStore:
-    """Verwaltet die Qdrant-Collection und speichert Vektoren."""
+    """Manages the Qdrant collection and stores vectors."""
 
     def __init__(self, host: str = QDRANT_HOST, port: int = QDRANT_PORT) -> None:
         self.client = QdrantClient(host=host, port=port)
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-        """Legt die Collection an, falls sie noch nicht existiert."""
+        """Creates the collection if it does not exist yet."""
         collections = [c.name for c in self.client.get_collections().collections]
 
         if COLLECTION_NAME not in collections:
-            log.info("Erstelle Qdrant-Collection '%s' …", COLLECTION_NAME)
+            log.info("Creating Qdrant collection '%s' …", COLLECTION_NAME)
             self.client.create_collection(
                 collection_name=COLLECTION_NAME,
                 vectors_config=VectorParams(
@@ -192,9 +192,9 @@ class QdrantStore:
                     distance=Distance.COSINE,
                 ),
             )
-            log.info("Collection '%s' erstellt ✓", COLLECTION_NAME)
+            log.info("Collection '%s' created ✓", COLLECTION_NAME)
         else:
-            log.info("Collection '%s' existiert bereits ✓", COLLECTION_NAME)
+            log.info("Collection '%s' already exists ✓", COLLECTION_NAME)
 
     def upsert(
         self,
@@ -202,7 +202,7 @@ class QdrantStore:
         vector: list[float],
         payload: dict[str, Any],
     ) -> None:
-        """Speichert einen Punkt (idempotent via UUID)."""
+        """Stores a point (idempotent via UUID)."""
         self.client.upsert(
             collection_name=COLLECTION_NAME,
             points=[
@@ -219,7 +219,7 @@ class QdrantStore:
 
 
 class SessionFileHandler(FileSystemEventHandler):
-    """Reagiert auf Änderungen an *.jsonl-Dateien."""
+    """Reacts to changes in *.jsonl files."""
 
     def __init__(self, store: QdrantStore | None, dry_run: bool = False) -> None:
         super().__init__()
@@ -243,47 +243,47 @@ class SessionFileHandler(FileSystemEventHandler):
         if filepath.suffix != ".jsonl":
             return
 
-        log.info("Änderung erkannt: %s", filepath.name)
+        log.info("Change detected: %s", filepath.name)
 
-        # Letzte Zeile lesen
+        # Read last line
         line = read_last_line(filepath)
         if not line:
-            log.debug("Datei leer oder nicht lesbar – überspringe.")
+            log.debug("File empty or not readable – skipping.")
             return
 
-        # Deduplizierung: gleiche Zeile nicht doppelt verarbeiten
+        # Deduplication: don't process the same line twice
         line_hash = hashlib.md5(line.encode()).hexdigest()
         if self._last_processed.get(str(filepath)) == line_hash:
-            log.debug("Zeile bereits verarbeitet – überspringe.")
+            log.debug("Line already processed – skipping.")
             return
         self._last_processed[str(filepath)] = line_hash
 
-        # JSON parsen
+        # Parse JSON
         entry = parse_jsonl_entry(line)
         if not entry:
             return
 
-        session_id = filepath.stem  # Dateiname ohne Endung = Session-ID
+        session_id = filepath.stem  # Filename without extension = Session ID
         text = entry["text"]
 
         log.info(
-            "Neuer Eintrag │ Session: %s │ Sender: %s │ Text: %.80s…",
+            "New entry │ Session: %s │ Sender: %s │ Text: %.80s…",
             session_id,
             entry["sender"],
             text,
         )
 
         if self.dry_run:
-            log.info("[DRY RUN] Überspringe Embedding & Storage.")
+            log.info("[DRY RUN] Skipping embedding & storage.")
             return
 
-        # Embedding erzeugen
+        # Create embedding
         vector = get_embedding(text)
         if not vector:
-            log.error("Embedding fehlgeschlagen – Eintrag wird nicht gespeichert.")
+            log.error("Embedding failed – entry will not be stored.")
             return
 
-        # In Qdrant speichern
+        # Store in Qdrant
         point_id = make_point_id(session_id, entry["timestamp"], text)
         payload = {
             "timestamp": entry["timestamp"],
@@ -294,9 +294,9 @@ class SessionFileHandler(FileSystemEventHandler):
 
         try:
             self.store.upsert(point_id=point_id, vector=vector, payload=payload)
-            log.info("Gespeichert in Qdrant ✓  (ID: %s)", point_id[:8])
+            log.info("Stored in Qdrant ✓  (ID: %s)", point_id[:8])
         except Exception as e:
-            log.error("Qdrant-Fehler: %s", e)
+            log.error("Qdrant error: %s", e)
 
 
 # ── Main ────────────────────────────────────────────────────────────────────
@@ -304,64 +304,64 @@ class SessionFileHandler(FileSystemEventHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="AI Memory Watcher – Vektorisiert OpenClaw-Chats automatisch."
+        description="AI Memory Watcher – Automatically vectorizes OpenClaw chats."
     )
     parser.add_argument(
         "--sessions-dir",
         type=str,
         default=DEFAULT_SESSIONS_DIR,
-        help=f"Pfad zum Sessions-Verzeichnis (Standard: {DEFAULT_SESSIONS_DIR})",
+        help=f"Path to the sessions directory (default: {DEFAULT_SESSIONS_DIR})",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Nur Dateien überwachen und parsen, kein Embedding/Storage.",
+        help="Watch and parse files only, no embedding/storage.",
     )
     args = parser.parse_args()
 
     sessions_dir = Path(args.sessions_dir)
     if not sessions_dir.exists():
-        log.error("Sessions-Verzeichnis existiert nicht: %s", sessions_dir)
-        log.error("Erstelle es oder passe --sessions-dir an.")
+        log.error("Sessions directory does not exist: %s", sessions_dir)
+        log.error("Create it or adjust --sessions-dir.")
         sys.exit(1)
 
-    # ── Qdrant verbinden ────────────────────────────────────────────────
+    # ── Connect to Qdrant ────────────────────────────────────────────────
     store: QdrantStore | None = None
     if not args.dry_run:
         try:
             store = QdrantStore()
         except Exception as e:
-            log.error("Qdrant nicht erreichbar: %s", e)
-            log.error("Läuft der Qdrant-Container? Starte ihn mit: bash setup.sh")
+            log.error("Qdrant not reachable: %s", e)
+            log.error("Is the Qdrant container running? Start it with: bash setup.sh")
             sys.exit(1)
 
         # Ollama Health-Check
         try:
             resp = requests.get(OLLAMA_URL, timeout=5)
             resp.raise_for_status()
-            log.info("Ollama erreichbar ✓")
+            log.info("Ollama reachable ✓")
         except requests.RequestException:
-            log.error("Ollama nicht erreichbar unter %s", OLLAMA_URL)
-            log.error("Läuft der Ollama-Container? Starte ihn mit: bash setup.sh")
+            log.error("Ollama not reachable at %s", OLLAMA_URL)
+            log.error("Is the Ollama container running? Start it with: bash setup.sh")
             sys.exit(1)
 
-    # ── Watcher starten ─────────────────────────────────────────────────
+    # ── Start watcher ────────────────────────────────────────────────────
     handler = SessionFileHandler(store=store, dry_run=args.dry_run)
     observer = Observer()
     observer.schedule(handler, str(sessions_dir), recursive=True)
 
     log.info("=" * 60)
-    log.info("  AI Memory Watcher gestartet")
-    log.info("  Überwache: %s", sessions_dir)
+    log.info("  AI Memory Watcher started")
+    log.info("  Watching: %s", sessions_dir)
     if args.dry_run:
-        log.info("  Modus: DRY RUN (kein Embedding/Storage)")
+        log.info("  Mode: DRY RUN (no embedding/storage)")
     log.info("=" * 60)
 
     observer.start()
 
     # Graceful Shutdown
     def shutdown(signum: int, frame: Any) -> None:
-        log.info("Shutdown-Signal empfangen – beende Watcher …")
+        log.info("Shutdown signal received – stopping watcher …")
         observer.stop()
 
     signal.signal(signal.SIGINT, shutdown)
@@ -373,7 +373,7 @@ def main() -> None:
     finally:
         observer.stop()
         observer.join()
-        log.info("Watcher beendet. Auf Wiedersehen! 👋")
+        log.info("Watcher stopped. Goodbye! 👋")
 
 
 if __name__ == "__main__":

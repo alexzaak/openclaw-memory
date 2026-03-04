@@ -25,8 +25,8 @@ function formatTimestamp(ts) {
 
     const time = date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 
-    if (isToday) return `Heute, ${time}`
-    if (isYesterday) return `Gestern, ${time}`
+    if (isToday) return `Today, ${time}`
+    if (isYesterday) return `Yesterday, ${time}`
     return `${date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} ${time}`
 }
 
@@ -87,9 +87,9 @@ export default function DailyContextWidget() {
             <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-clawdi-text-dim uppercase tracking-wider flex items-center gap-2">
                     <span className="w-5 h-5 rounded bg-clawdi-amber/10 flex items-center justify-center text-xs">📝</span>
-                    Tageskontext
+                    Daily Context
                 </h3>
-                <span className="text-[10px] text-clawdi-text-muted font-mono">{entries.length} Einträge</span>
+                <span className="text-[10px] text-clawdi-text-muted font-mono">{entries.length} entries</span>
             </div>
 
             {/* Scope filter chips */}
@@ -99,8 +99,8 @@ export default function DailyContextWidget() {
                         key={scope.label}
                         onClick={() => setActiveScope(scope.key)}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${activeScope === scope.key
-                                ? `${scope.bg} ${scope.text} border ${scope.border}`
-                                : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
+                            ? `${scope.bg} ${scope.text} border ${scope.border}`
+                            : 'bg-clawdi-card text-clawdi-text-dim border border-clawdi-border hover:border-clawdi-blue/20'
                             }`}
                     >
                         <span className="text-xs">{scope.icon}</span>
@@ -110,19 +110,19 @@ export default function DailyContextWidget() {
             </div>
 
             {/* Content */}
-            {loading && <LoadingSpinner size="sm" label="Lade Tageskontext…" />}
+            {loading && <LoadingSpinner size="sm" label="Loading daily context…" />}
 
             {error && (
                 <div className="text-center py-6">
                     <p className="text-xs text-clawdi-text-muted">{error}</p>
-                    <button onClick={loadData} className="text-xs text-clawdi-blue mt-2 hover:underline cursor-pointer">Erneut versuchen</button>
+                    <button onClick={loadData} className="text-xs text-clawdi-blue mt-2 hover:underline cursor-pointer">Retry</button>
                 </div>
             )}
 
             {!loading && !error && entries.length === 0 && (
                 <div className="text-center py-8">
                     <div className="text-2xl mb-2">📭</div>
-                    <p className="text-xs text-clawdi-text-muted">Kein Tageskontext vorhanden.</p>
+                    <p className="text-xs text-clawdi-text-muted">No daily context available.</p>
                 </div>
             )}
 

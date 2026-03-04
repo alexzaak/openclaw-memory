@@ -7,7 +7,7 @@ export default function ErrorBox({ message, onRetry }) {
                 </svg>
             </div>
             <div>
-                <p className="text-clawdi-text font-medium">Verbindungsfehler</p>
+                <p className="text-clawdi-text font-medium">Connection Error</p>
                 <p className="text-sm text-clawdi-text-dim mt-1">{message}</p>
             </div>
             {onRetry && (
@@ -15,7 +15,7 @@ export default function ErrorBox({ message, onRetry }) {
                     onClick={onRetry}
                     className="px-4 py-2 text-sm font-medium rounded-lg bg-clawdi-blue/10 text-clawdi-blue border border-clawdi-blue/20 hover:bg-clawdi-blue/20 transition-colors cursor-pointer"
                 >
-                    Erneut versuchen
+                    Retry
                 </button>
             )}
         </div>

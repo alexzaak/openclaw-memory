@@ -7,7 +7,7 @@ from datetime import datetime, date
 from qdrant_client import QdrantClient
 from falkordb import FalkorDB
 
-# --- Konfiguration ---
+# --- Configuration ---
 QDRANT_URL = "http://127.0.0.1:6333"
 FALKOR_HOST = "127.0.0.1"
 FALKOR_PORT = 6379
@@ -15,9 +15,9 @@ GRAPH_NAME = "openclaw_ontology"
 EMBED_MODEL = "nomic-embed-text"
 OLLAMA_URL = "http://127.0.0.1:11434"
 
-# Hier bräuchte das Script einen API-Key für die finale Analyse.
-# Wir können es aber so bauen, dass es die Cypher-Queries vom Agenten bekommt
-# oder selbst via Google API anfragt.
+# This script would need an API key for the final analysis.
+# We can build it so that it receives Cypher queries from the agent
+# or queries the Google API itself.
 
 def get_today_chats(target_date=None):
     if not target_date:
@@ -25,8 +25,8 @@ def get_today_chats(target_date=None):
     
     client = QdrantClient(host="127.0.0.1", port=6333)
     
-    # Wir holen uns eine größere Menge an Punkten und filtern lokal nach Datum im Payload
-    # (In einer finalen Version nutzen wir Qdrant Filter-Indizes)
+    # Fetch a larger set of points and filter locally by date in the payload
+    # (In a final version we would use Qdrant filter indices)
     results = client.scroll(
         collection_name="openclaw_memory",
         limit=100,
@@ -55,21 +55,21 @@ def run_cypher_batch(queries):
                 graph.query(q)
                 results.append(True)
             except Exception as e:
-                print(f"Fehler bei Query {q}: {e}")
+                print(f"Error in query {q}: {e}")
                 results.append(False)
     return results
 
 if __name__ == "__main__":
-    # Wenn das Script mit 'extract' aufgerufen wird, gibt es die heutigen Chats aus
+    # If called with 'extract', output today's chats
     if len(sys.argv) > 1 and sys.argv[1] == "extract":
         print(get_today_chats())
     
-    # Wenn es mit 'ingest' aufgerufen wird, erwartet es Cypher-Queries via stdin
+    # If called with 'ingest', expect Cypher queries via stdin
     elif len(sys.argv) > 1 and sys.argv[1] == "ingest":
         input_data = sys.stdin.read()
         try:
             queries = json.loads(input_data)
             run_cypher_batch(queries)
-            print("Ingestion erfolgreich")
+            print("Ingestion successful")
         except Exception as e:
-            print(f"Fehler beim Parsen der Queries: {e}")
+            print(f"Error parsing queries: {e}")

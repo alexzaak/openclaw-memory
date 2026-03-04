@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     <button
                         onClick={onClose}
                         className="w-8 h-8 rounded-lg bg-clawdi-card border border-clawdi-border flex items-center justify-center text-clawdi-text-dim hover:text-clawdi-text hover:bg-clawdi-hover transition-all cursor-pointer md:hidden"
-                        aria-label="Menü schließen"
+                        aria-label="Close menu"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

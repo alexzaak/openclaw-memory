@@ -103,7 +103,7 @@ export default function NeuralFeed() {
                     Neural Feed
                 </h2>
                 <p className="mt-2 text-sm text-clawdi-text-dim">
-                    Semantische Suche durch Clawdi's Gedächtnis – powered by Qdrant + Ollama Embeddings
+                    Semantic search through Clawdi's memory – powered by Qdrant + Ollama Embeddings
                 </p>
             </div>
 
@@ -122,7 +122,7 @@ export default function NeuralFeed() {
                             type="text"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder={'Frag Clawdi\u2019s Ged\u00e4chtnis\u2026 z.B. \u201eWann war der letzte Arzttermin?\u201c'}
+                            placeholder={'Search Clawdi\u2019s memory\u2026 e.g. \u201cWhen was the last doctor appointment?\u201d'}
                             className="flex-1 px-4 py-4 bg-transparent text-clawdi-text placeholder-clawdi-text-muted text-sm focus:outline-none"
                         />
                         <button
@@ -130,27 +130,27 @@ export default function NeuralFeed() {
                             disabled={loading || !query.trim()}
                             className="px-5 py-2 mr-2 text-sm font-medium rounded-lg bg-clawdi-blue/10 text-clawdi-blue border border-clawdi-blue/20 hover:bg-clawdi-blue/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                         >
-                            {loading ? 'Suche…' : 'Suchen'}
+                            {loading ? 'Searching…' : 'Search'}
                         </button>
                     </div>
                 </div>
             </form>
 
             {/* Results or Recent Feed */}
-            {loading && <LoadingSpinner label="Durchsuche Erinnerungen…" />}
+            {loading && <LoadingSpinner label="Searching memories…" />}
             {error && <ErrorBox message={error} onRetry={results ? handleSearch : loadRecent} />}
 
             {results && !loading && (
                 <div>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-medium text-clawdi-text-dim">
-                            {results.count} Treffer für „{results.query}"
+                            {results.count} results for "{results.query}"
                         </h3>
                         <button
                             onClick={() => { setResults(null); setQuery('') }}
                             className="text-xs text-clawdi-text-muted hover:text-clawdi-blue transition-colors cursor-pointer"
                         >
-                            Zurücksetzen
+                            Reset
                         </button>
                     </div>
                     <div className="space-y-3 stagger-children">
@@ -164,17 +164,17 @@ export default function NeuralFeed() {
             {!results && !loading && (
                 <div>
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-clawdi-text-dim">Letzte Erinnerungen</h3>
+                        <h3 className="text-sm font-medium text-clawdi-text-dim">Recent Memories</h3>
                         <button
                             onClick={loadRecent}
                             disabled={recentLoading}
                             className="text-xs text-clawdi-blue hover:text-clawdi-amber transition-colors cursor-pointer"
                         >
-                            {recentLoading ? 'Laden…' : 'Aktualisieren'}
+                            {recentLoading ? 'Loading…' : 'Refresh'}
                         </button>
                     </div>
 
-                    {recentLoading && <LoadingSpinner label="Lade neueste Einträge…" size="sm" />}
+                    {recentLoading && <LoadingSpinner label="Loading latest entries…" size="sm" />}
 
                     {recentData?.points?.length > 0 ? (
                         <div className="space-y-3 stagger-children">
@@ -186,7 +186,7 @@ export default function NeuralFeed() {
                         <div className="text-center py-16">
                             <div className="text-4xl mb-4">🔍</div>
                             <p className="text-clawdi-text-dim text-sm">
-                                Starte eine Suche oben oder klicke „Aktualisieren" um die neuesten Erinnerungen zu laden.
+                                Start a search above or click "Refresh" to load the latest memories.
                             </p>
                         </div>
                     ) : null}

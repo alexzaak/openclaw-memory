@@ -174,7 +174,7 @@ export default function HealthMonitor() {
         loadData()
     }, [loadData])
 
-    if (loading) return <LoadingSpinner label="Lade Health Monitor…" />
+    if (loading) return <LoadingSpinner label="Loading Health Monitor…" />
     if (error) return <ErrorBox message={error} onRetry={loadData} />
 
     // Parse temperature from TEMP logs for sparkline
@@ -196,7 +196,7 @@ export default function HealthMonitor() {
                     Health & Learning Monitor
                 </h2>
                 <p className="mt-2 text-sm text-clawdi-text-dim">
-                    Systemstatus, Metriken und Selbstverbesserungs-Protokoll
+                    System status, metrics and self-improvement log
                 </p>
             </div>
 
@@ -237,7 +237,7 @@ export default function HealthMonitor() {
                 <div className="lg:col-span-2">
                     <h3 className="text-sm font-semibold text-clawdi-text-dim uppercase tracking-wider mb-3 flex items-center gap-2">
                         <span className="w-5 h-5 rounded bg-clawdi-blue/10 flex items-center justify-center text-xs">⚙️</span>
-                        System-Zustand
+                        System State
                     </h3>
                     <div className="space-y-2">
                         {Object.entries(state || {}).map(([key, data]) => (
@@ -250,7 +250,7 @@ export default function HealthMonitor() {
                 <div className="lg:col-span-3">
                     <h3 className="text-sm font-semibold text-clawdi-text-dim uppercase tracking-wider mb-3 flex items-center gap-2">
                         <span className="w-5 h-5 rounded bg-clawdi-purple/10 flex items-center justify-center text-xs">🧠</span>
-                        Learning Log (Selbstverbesserung)
+                        Learning Log (Self-Improvement)
                     </h3>
                     <div className="relative">
                         {learningLog && learningLog.length > 0 ? (
@@ -258,7 +258,7 @@ export default function HealthMonitor() {
                                 <LearningEntry key={entry.id} entry={entry} index={i} />
                             ))
                         ) : (
-                            <p className="text-sm text-clawdi-text-muted py-4 text-center">Keine LRN-Einträge vorhanden.</p>
+                            <p className="text-sm text-clawdi-text-muted py-4 text-center">No learning log entries found.</p>
                         )}
                     </div>
                 </div>

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-seed_sqlite.py – Erstellt short_term.db mit Schema und Demodaten
+seed_sqlite.py – Creates short_term.db with schema and demo data
 =================================================================
-Schema (wie vom User definiert):
+Schema (as defined by user):
     logs:  id (PK), timestamp (DATETIME), category (TEXT), content (TEXT), mood_score (INTEGER)
     state: key (TEXT PK), value (TEXT), updated_at (DATETIME)
 """
@@ -48,13 +48,13 @@ def seed():
     now = datetime.now()
     logs = [
         # LRN – Learning / Self-improvement entries
-        (now - timedelta(hours=2), "LRN", "Gelernt: FalkorDB Cypher MERGE vs CREATE – MERGE ist idempotent.", 8),
-        (now - timedelta(hours=5), "LRN", "Erkenntnis: Bei Qdrant scroll() muss order_by auf indexed fields zeigen.", 7),
-        (now - timedelta(days=1, hours=3), "LRN", "Pattern: Async Context Manager für DB-Pool-Lifecycle in FastAPI.", 9),
-        (now - timedelta(days=1, hours=8), "LRN", "Fehler vermieden: UUID5 statt UUID4 für deterministische Point-IDs.", 8),
-        (now - timedelta(days=2), "LRN", "Gelernt: Podman network_mode host vs bridge – host ist für lokale DBs besser.", 6),
+        (now - timedelta(hours=2), "LRN", "Learned: FalkorDB Cypher MERGE vs CREATE – MERGE is idempotent.", 8),
+        (now - timedelta(hours=5), "LRN", "Insight: Qdrant scroll() order_by must point to indexed fields.", 7),
+        (now - timedelta(days=1, hours=3), "LRN", "Pattern: Async Context Manager for DB pool lifecycle in FastAPI.", 9),
+        (now - timedelta(days=1, hours=8), "LRN", "Bug avoided: UUID5 instead of UUID4 for deterministic point IDs.", 8),
+        (now - timedelta(days=2), "LRN", "Learned: Podman network_mode host vs bridge – host is better for local DBs.", 6),
 
-        # TEMP – Temperature readings (Konsti's Fieberwerte)
+        # TEMP – Temperature readings (Konsti's fever readings)
         (now - timedelta(hours=1), "TEMP", "Konsti: 37.2°C", 5),
         (now - timedelta(hours=4), "TEMP", "Konsti: 37.8°C", 4),
         (now - timedelta(hours=8), "TEMP", "Konsti: 38.1°C", 3),
@@ -65,14 +65,14 @@ def seed():
         (now - timedelta(days=1, hours=8), "TEMP", "Konsti: 37.1°C", 6),
 
         # SYS – System status
-        (now - timedelta(minutes=30), "SYS", "Memory Watcher läuft stabil. 42 Einträge heute verarbeitet.", 7),
+        (now - timedelta(minutes=30), "SYS", "Memory Watcher running stable. 42 entries processed today.", 7),
         (now - timedelta(hours=6), "SYS", "Qdrant Disk Usage: 2.1 GB / 50 GB", 6),
-        (now - timedelta(days=1), "SYS", "REM-Schlaf-Job: 3 neue Fakten in Graph extrahiert.", 8),
+        (now - timedelta(days=1), "SYS", "REM sleep job: 3 new facts extracted into graph.", 8),
 
         # MOOD – General mood tracking
-        (now - timedelta(hours=1), "MOOD", "Guter Tag – Konsti geht es besser, Projekt läuft.", 8),
-        (now - timedelta(days=1), "MOOD", "Etwas gestresst – Konsti hat Fieber, viel zu tun.", 4),
-        (now - timedelta(days=2), "MOOD", "Produktiver Tag, viel geschafft am Dashboard-Projekt.", 9),
+        (now - timedelta(hours=1), "MOOD", "Good day – Konsti is doing better, project is on track.", 8),
+        (now - timedelta(days=1), "MOOD", "A bit stressed – Konsti has a fever, lots to do.", 4),
+        (now - timedelta(days=2), "MOOD", "Productive day, got a lot done on the dashboard project.", 9),
     ]
 
     conn.executemany(

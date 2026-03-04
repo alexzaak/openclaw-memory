@@ -1,7 +1,7 @@
 """
-config.py – Zentrale Konfiguration für das Clawdi Brain Dashboard Backend
+config.py – Central configuration for the Clawdi Brain Dashboard Backend
 =========================================================================
-Alle Werte können über Umgebungsvariablen überschrieben werden.
+All values can be overridden via environment variables.
 """
 
 import os

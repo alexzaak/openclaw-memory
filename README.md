@@ -1,19 +1,19 @@
-# 🧠 AI Memory – Lokales Gedächtnis für OpenClaw
+# 🧠 AI Memory – Local Memory for OpenClaw
 
-Vollautomatisches, semantisches und strukturiertes Langzeitgedächtnis für Clawdi (OpenClaw).
+Fully automated, semantic and structured long-term memory for Clawdi (OpenClaw).
 
-## Architektur
+## Architecture
 
-Das System besteht aus drei Kern-Komponenten, die Hand in Hand arbeiten:
+The system consists of three core components that work hand in hand:
 
-1.  **Auto-Memory (Vektor-Suche):** Jede Chat-Nachricht wird in Echtzeit vektorisiert und in Qdrant gespeichert. Erlaubt semantische Suche ("Gefühlssuche").
-2.  **Wissensgraph (Struktur):** Fakten und Beziehungen (Personen, Projekte, Hardware) werden in FalkorDB (Graph-DB) gespeichert.
-3.  **REM-Schlaf (Synthese):** Ein nächtlicher Cron-Job analysiert die Tages-Chats und überführt neue Erkenntnisse automatisch in den Wissensgraphen.
+1.  **Auto-Memory (Vector Search):** Every chat message is vectorized in real-time and stored in Qdrant. Enables semantic search ("feeling-based search").
+2.  **Knowledge Graph (Structure):** Facts and relationships (people, projects, hardware) are stored in FalkorDB (graph DB).
+3.  **REM Sleep (Synthesis):** A nightly cron job analyzes the day's chats and automatically transfers new insights into the knowledge graph.
 
 ```
 ┌─────────────────────┐    watchdog     ┌──────────────────┐
 │  JSONL Sessions     │ ──────────────► │  memory_watcher  │
-│  (OpenClaw Agent)   │   Dateiänderung │  (Python Service)│
+│  (OpenClaw Agent)   │   file change   │  (Python Service)│
 └─────────────────────┘                 └────────┬─────────┘
                                                  │
             ┌────────────────────────────────────┼────────────────────────────────────┐
@@ -32,97 +32,96 @@ Das System besteht aus drei Kern-Komponenten, die Hand in Hand arbeiten:
                                        └──────────────────┘
 ```
 
-## Komponenten & Tools
+## Components & Tools
 
-### 🏗️ Infrastruktur (Podman)
-- **Qdrant:** Vektor-Datenbank für semantische Suche.
-- **Ollama:** Lokale Embedding-Engine (`nomic-embed-text`).
-- **FalkorDB:** Hochperformante Graph-Datenbank für Ontologien.
-- **Nginx:** Webserver für die Visualisierung.
+### 🏗️ Infrastructure (Podman)
+- **Qdrant:** Vector database for semantic search.
+- **Ollama:** Local embedding engine (`nomic-embed-text`).
+- **FalkorDB:** High-performance graph database for ontologies.
+- **Nginx:** Web server for visualization.
 
 ### 🐍 Python Core
-- `memory_watcher.py`: Überwacht die Session-Files und füttert Qdrant.
-- `falkor_client.py`: Interface für Cypher-Abfragen an die Graph-DB.
-- `graph_rem_sleep.py`: Der "REM-Prozessor" für die nächtliche Fakten-Extraktion.
-- `generate_brain_map.py`: Generiert die interaktive HTML-Visualisierung.
+- `memory_watcher.py`: Watches session files and feeds Qdrant.
+- `falkor_client.py`: Interface for Cypher queries to the graph DB.
+- `graph_rem_sleep.py`: The "REM processor" for nightly fact extraction.
+- `generate_brain_map.py`: Generates the interactive HTML visualization.
 
-## Schnellstart
+## Quick Start
 
-### 1. Vorbereiten (Fedora LVM-Fix)
-Fedora weist der Root-Partition oft nur 15GB zu. Für die Container-Images sollte der Speicher erweitert werden:
+### 1. Preparation (Fedora LVM Fix)
+Fedora often allocates only 15GB to the root partition. Storage should be expanded for the container images:
 ```bash
 sudo lvextend -l +100%FREE /dev/mapper/fedora_nova-root
 sudo xfs_growfs /
 ```
 
-### 2. Infrastruktur starten
+### 2. Start Infrastructure
 ```bash
 bash setup.sh
 ```
-Dies startet alle Container und lädt die benötigten KI-Modelle.
+This starts all containers and downloads the required AI models.
 
 ### 3. Dependencies & Service
 ```bash
 pip install -r requirements.txt
-# Watcher als User-Service starten
+# Start watcher as user service
 systemctl --user enable --now clawdi-memory.service
 ```
 
-## Wartung & Betrieb
+## Maintenance & Operations
 
-### Nächtliche Analyse (REM-Schlaf)
-Ein Cron-Job (empfohlen 23:30 Uhr) sollte folgendes Kommando ausführen:
+### Nightly Analysis (REM Sleep)
+A cron job (recommended at 23:30) should run the following command:
 ```bash
-# Extrahiert heute gelernte Fakten und aktualisiert den Graphen + Dashboard
+# Extracts today's learned facts and updates the graph + dashboard
 python3 graph_rem_sleep.py process_today
 ```
 
-### Migration alter Daten
-Um bestehende JSONL-Logs oder Markdown-Dateien zu importieren:
+### Migrating Existing Data
+To import existing JSONL logs or Markdown files:
 ```bash
-python3 import_history.py    # Importiert alle Sessions in Qdrant
-python3 migrate_ontology.py  # Importiert bestehende graph.jsonl in FalkorDB
+python3 import_history.py    # Imports all sessions into Qdrant
+python3 migrate_ontology.py  # Imports existing graph.jsonl into FalkorDB
 ```
 
 ## 🧠 Brain Dashboard
 
-Das neue **Clawdi Brain Dashboard** ist eine Full-Stack Web-Applikation:
+The **Clawdi Brain Dashboard** is a full-stack web application:
 
-- **Neural Feed** – Semantische Suche durch alle Erinnerungen (Qdrant)
-- **Knowledge Vault** – Entity-Explorer für den Wissensgraphen (FalkorDB)
-- **Health Monitor** – System-Status, Temperaturverlauf, Learning-Log (SQLite)
+- **Neural Feed** – Semantic search through all memories (Qdrant)
+- **Knowledge Vault** – Entity explorer for the knowledge graph (FalkorDB)
+- **Health Monitor** – System status, temperature history, learning log (SQLite)
 
-### Starten
+### Starting
 
 ```bash
-# SQLite mit Demo-Daten befüllen
+# Seed SQLite with demo data
 python3 dashboard/seed_sqlite.py
 
-# Dashboard starten (Backend + Frontend)
+# Start dashboard (backend + frontend)
 cd dashboard && podman compose up -d --build
 ```
 
-Dashboard ist erreichbar unter: `http://<server-ip>:80`
-API-Docs: `http://<server-ip>:8080/docs`
+Dashboard available at: `http://<server-ip>:80`
+API Docs: `http://<server-ip>:8080/docs`
 
-### Entwicklung (lokal)
+### Development (Local)
 
 ```bash
 # Backend
 cd dashboard/backend && pip install -r requirements.txt
 uvicorn main:app --reload --port 8080
 
-# Frontend (in separatem Terminal)
+# Frontend (in a separate terminal)
 cd dashboard/frontend && npm install && npm run dev
 ```
 
 ## Ports
 
-| Service | Port | Beschreibung |
+| Service | Port | Description |
 |---|---|---|
 | Dashboard UI | 80 | Nginx + React SPA |
 | Dashboard API | 8080 | FastAPI Backend |
-| Qdrant | 6333 | Vektor-Datenbank |
-| Ollama | 11434 | Embedding-Engine |
-| FalkorDB | 6379 | Graph-Datenbank |
-
+| Qdrant | 6333 | Vector Database |
+| Ollama | 11434 | Embedding Engine |
+| FalkorDB | 6379 | Graph Database |
