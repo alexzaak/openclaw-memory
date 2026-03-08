@@ -43,7 +43,9 @@ The system consists of three core components that work hand in hand:
 ### 🐍 Python Core
 - `memory_watcher.py`: Watches session files and feeds Qdrant.
 - `falkor_client.py`: Interface for Cypher queries to the graph DB.
-- `graph_rem_sleep.py`: The "REM processor" for nightly fact extraction.
+- `search_by_date.py`: Canonical utility to dump Qdrant entries for a given date.
+- `rem_sleep_v2.py`: REM-sleep helper for extracting daily context (SQLite + Qdrant), compressing SQLite context, and ingesting Cypher into FalkorDB.
+- `graph_rem_sleep.py`: Legacy helper (Qdrant extract + Cypher ingest).
 - `generate_brain_map.py`: Generates the interactive HTML visualization.
 
 ## Quick Start
@@ -71,11 +73,34 @@ systemctl --user enable --now clawdi-memory.service
 ## Maintenance & Operations
 
 ### Nightly Analysis (REM Sleep)
-A cron job (recommended at 23:30) should run the following command:
+The REM-sleep pipeline is split into two steps:
+
+1) **Extract** the day's context as JSON (short-term SQLite + Qdrant daily stream)
+2) Let the agent/LLM create summaries + Cypher, then **compress** SQLite and **ingest** into FalkorDB.
+
+#### 1) Extract daily context (SQLite + Qdrant)
 ```bash
-# Extracts today's learned facts and updates the graph + dashboard
-python3 graph_rem_sleep.py process_today
+python3 rem_sleep_v2.py extract > /tmp/rem_sleep_context.json
 ```
+
+By default the target date is the local system date. You can override it:
+```bash
+REM_SLEEP_DATE=2026-03-08 python3 rem_sleep_v2.py extract
+```
+
+`rem_sleep_v2.py` shells out to the canonical Qdrant-by-date script and embeds its output into the JSON under `qdrant`:
+```bash
+python3 search_by_date.py --date 2026-03-08
+```
+
+#### 2) Apply compression + graph ingestion (agent-driven)
+After the agent produces (a) scope summaries and (b) Cypher queries:
+```bash
+python3 rem_sleep_v2.py compress '<json summaries>'
+python3 rem_sleep_v2.py ingest   '<json cypher queries>'
+```
+
+> Note: `graph_rem_sleep.py` currently only supports `extract` (Qdrant → stdout) and `ingest` (stdin JSON Cypher).
 
 ### Migrating Existing Data
 To import existing JSONL logs or Markdown files:
