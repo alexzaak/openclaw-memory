@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
+import os
 import sqlite3
 import argparse
 from datetime import datetime, timedelta
+from pathlib import Path
 
-DB_PATH = '/home/clawdi/.openclaw/short_term.db'
+from dotenv import load_dotenv
+
+load_dotenv()
+
+_sqlite_path = os.getenv("SQLITE_PATH", str(Path.home() / ".openclaw" / "short_term.db"))
+DB_PATH = os.path.expanduser(_sqlite_path)
 
 def main():
     parser = argparse.ArgumentParser(description="Get short-term memory context.")
@@ -30,10 +37,10 @@ def main():
     conn.close()
 
     if not rows:
-        print(f"Keine neuen Einträge im Kurzzeitgedächtnis für {args.scope.upper()}.")
+        print(f"No new entries in short-term memory for {args.scope.upper()}.")
         return
 
-    print(f"--- 🧠 Kurzzeitgedächtnis (Letzte {args.hours}h) für {args.scope.upper()} ---")
+    print(f"--- 🧠 Short-term memory (last {args.hours}h) for {args.scope.upper()} ---")
     for row in rows:
         ts = row[0][:16].replace('T', ' ')
         print(f"[{ts}] [{row[1].upper()}]: {row[2]}")

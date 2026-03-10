@@ -14,17 +14,21 @@ Usage:
 
 import argparse
 import json
+import os
 import logging
 import sys
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from falkordb import FalkorDB
 
-# ── Configuration ──────────────────────────────────────────────────────────
+# ── Configuration (loaded from .env) ───────────────────────────────────────
 
-FALKOR_HOST = "127.0.0.1"
-FALKOR_PORT = 6379
-GRAPH_NAME = "openclaw_ontology"
+load_dotenv()
+
+FALKOR_HOST = os.getenv("FALKOR_HOST", "127.0.0.1")
+FALKOR_PORT = int(os.getenv("FALKOR_PORT", "6379"))
+GRAPH_NAME = os.getenv("FALKOR_GRAPH", "openclaw_ontology")
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 

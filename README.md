@@ -50,20 +50,51 @@ The system consists of three core components that work hand in hand:
 
 ## Quick Start
 
-### 1. Preparation (Fedora LVM Fix)
+### 1. Configuration
+
+All scripts read their configuration from a single `.env` file in the project root. A template is provided:
+
+```bash
+cp .env.example .env
+# Edit .env to match your environment
+```
+
+| Variable | Default | Used By |
+|---|---|---|
+| `QDRANT_HOST` | `127.0.0.1` | all Python scripts, setup.sh |
+| `QDRANT_PORT` | `6333` | all Python scripts, setup.sh |
+| `QDRANT_COLLECTION` | `openclaw_memory` | memory_watcher, backend |
+| `QDRANT_STORAGE` | `/home/clawdi/.qdrant_storage` | setup.sh |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | memory_watcher, graph_rem_sleep |
+| `EMBED_MODEL` | `nomic-embed-text` | memory_watcher, setup.sh |
+| `EMBED_DIMENSION` | `768` | memory_watcher, backend |
+| `FALKOR_HOST` | `127.0.0.1` | falkor_client, backend |
+| `FALKOR_PORT` | `6379` | falkor_client, setup.sh |
+| `FALKOR_GRAPH` | `openclaw_ontology` | falkor_client, backend |
+| `FALKOR_STORAGE` | `/home/clawdi/.falkor_storage` | setup.sh |
+| `SESSIONS_DIR` | `/home/clawdi/.openclaw/agents/main/sessions/` | memory_watcher |
+| `SQLITE_PATH` | `~/.openclaw/short_term.db` | seed_sqlite, backend |
+| `ONTOLOGY_FILE` | (see .env.example) | migrate_ontology |
+| `DASHBOARD_PORT` | `8000` | setup.sh |
+| `API_PORT` | `8080` | backend |
+| `CORS_ORIGINS` | `*` | backend |
+
+> **Note:** The `.env` file is excluded from git via `.gitignore`. Never commit secrets to version control.
+
+### 2. Preparation (Fedora LVM Fix)
 Fedora often allocates only 15GB to the root partition. Storage should be expanded for the container images:
 ```bash
 sudo lvextend -l +100%FREE /dev/mapper/fedora_nova-root
 sudo xfs_growfs /
 ```
 
-### 2. Start Infrastructure
+### 3. Start Infrastructure
 ```bash
 bash setup.sh
 ```
 This starts all containers and downloads the required AI models.
 
-### 3. Dependencies & Service
+### 4. Dependencies & Service
 ```bash
 pip install -r requirements.txt
 # Start watcher as user service

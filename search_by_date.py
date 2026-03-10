@@ -1,31 +1,39 @@
 #!/usr/bin/env python3
 """
-search_by_date.py - Qdrant-Abfrage für ein spezifisches Datum
+search_by_date.py - Qdrant query for a specific date
 
-Nutzung:
+Usage:
     python3 search_by_date.py --date 2026-03-06
     python3 search_by_date.py --date 2026-03-06 --sender Laura
 """
 
+import os
 import argparse
 import sys
 from datetime import datetime
+from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 
+load_dotenv()
+
+QDRANT_HOST = os.getenv("QDRANT_HOST", "127.0.0.1")
+QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "openclaw_memory")
+
 def main():
-    parser = argparse.ArgumentParser(description="Qdrant-Suche nach spezifischem Datum")
-    parser.add_argument("--date", required=True, help="Datum im Format YYYY-MM-DD (z.B. 2026-03-06)")
-    parser.add_argument("--sender", help="Optional: Nach Sender filtern (z.B. 'Laura', 'Alex', oder Telefonnummer)")
+    parser = argparse.ArgumentParser(description="Qdrant search by specific date")
+    parser.add_argument("--date", required=True, help="Date in YYYY-MM-DD format (e.g. 2026-03-06)")
+    parser.add_argument("--sender", help="Optional: Filter by sender (e.g. 'Laura', 'Alex', or phone number)")
     args = parser.parse_args()
 
-    # Validierung des Datums
+    # Date validation
     try:
         datetime.strptime(args.date, "%Y-%m-%d")
     except ValueError:
-        print(f"Fehler: Ungültiges Datum '{args.date}'. Format: YYYY-MM-DD", file=sys.stderr)
+        print(f"Error: Invalid date '{args.date}'. Format: YYYY-MM-DD", file=sys.stderr)
         sys.exit(1)
 
-    client = QdrantClient(host="127.0.0.1", port=6333)
+    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
     target_prefix = args.date + "T"
     filtered_points = []
@@ -33,7 +41,7 @@ def main():
     offset = None
     while True:
         points, next_offset = client.scroll(
-            collection_name="openclaw_memory",
+            collection_name=QDRANT_COLLECTION,
             limit=1000,
             with_payload=True,
             with_vectors=False,
@@ -55,17 +63,17 @@ def main():
             break
 
     if not filtered_points:
-        print(f"Keine Einträge für {args.date} gefunden.")
+        print(f"No entries found for {args.date}.")
         if args.sender:
-            print(f"  (Filter: Sender enthält '{args.sender}')")
+            print(f"  (Filter: sender contains '{args.sender}')")
         return
 
     filtered_points.sort(key=lambda p: p.payload.get('timestamp', ''))
 
     print(f"\n{'='*70}")
-    print(f"📅 Einträge für {args.date} ({len(filtered_points)} gefunden)")
+    print(f"📅 Entries for {args.date} ({len(filtered_points)} found)")
     if args.sender:
-        print(f"👤 Filter: Sender enthält '{args.sender}'")
+        print(f"👤 Filter: sender contains '{args.sender}'")
     print(f"{'='*70}\n")
 
     for point in filtered_points:

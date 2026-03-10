@@ -1,17 +1,21 @@
-import json
 import os
 import glob
-from pathlib import Path
-from memory_watcher import parse_jsonl_entry, get_embedding, make_point_id, QdrantStore
 import logging
+from pathlib import Path
+
+from dotenv import load_dotenv
+from memory_watcher import parse_jsonl_entry, get_embedding, make_point_id, QdrantStore
+
+load_dotenv()
+
+SESSIONS_DIR = os.getenv("SESSIONS_DIR", "/home/clawdi/.openclaw/agents/main/sessions/")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s │ %(levelname)-7s │ %(message)s")
 log = logging.getLogger("import")
 
 def import_all():
     store = QdrantStore()
-    sessions_dir = "/home/clawdi/.openclaw/agents/main/sessions/"
-    files = glob.glob(os.path.join(sessions_dir, "*.jsonl"))
+    files = glob.glob(os.path.join(SESSIONS_DIR, "*.jsonl"))
     
     total_processed = 0
     total_skipped = 0

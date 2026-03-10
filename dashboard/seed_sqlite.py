@@ -7,11 +7,17 @@ Schema (as defined by user):
     state: key (TEXT PK), value (TEXT), updated_at (DATETIME)
 """
 
+import os
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-DB_PATH = Path.home() / ".openclaw" / "short_term.db"
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
+
+_sqlite_path = os.getenv("SQLITE_PATH", str(Path.home() / ".openclaw" / "short_term.db"))
+DB_PATH = Path(os.path.expanduser(_sqlite_path))
 
 
 def seed():

@@ -11,11 +11,15 @@ import json
 import logging
 import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 from falkor_client import FalkorMemory
 
-# ── Configuration ──────────────────────────────────────────────────────────
+# ── Configuration (loaded from .env) ───────────────────────────────────────
 
-ONTOLOGY_FILE = "/home/clawdi/.openclaw/workspace/memory/ontology/graph.jsonl"
+load_dotenv()
+
+ONTOLOGY_FILE = os.getenv("ONTOLOGY_FILE", "/home/clawdi/.openclaw/workspace/memory/ontology/graph.jsonl")
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 

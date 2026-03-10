@@ -3,10 +3,19 @@
 # setup.sh – Podman Setup for Qdrant, Ollama, FalkorDB & Dashboard
 # ============================================================================
 # Starts the complete AI infrastructure.
+# Configuration is loaded from .env (if present).
 # Usage:  bash setup.sh
 # ============================================================================
 
 set -euo pipefail
+
+# ── Load .env ───────────────────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/.env" ]]; then
+    set -a
+    source "${SCRIPT_DIR}/.env"
+    set +a
+fi
 
 # ── Colors ──────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -18,32 +27,27 @@ info()  { echo -e "${GREEN}[INFO]${NC}  $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
-# ── Configuration ──────────────────────────────────────────────────────────
+# ── Configuration (overridable via .env) ───────────────────────────────────
 QDRANT_CONTAINER="qdrant"
 QDRANT_IMAGE="docker.io/qdrant/qdrant:latest"
-QDRANT_STORAGE="/home/clawdi/.qdrant_storage"
-QDRANT_PORT_HTTP=6333
+QDRANT_STORAGE="${QDRANT_STORAGE:-/home/clawdi/.qdrant_storage}"
+QDRANT_PORT_HTTP="${QDRANT_PORT:-6333}"
 QDRANT_PORT_GRPC=6334
 
 OLLAMA_CONTAINER="ollama"
 OLLAMA_IMAGE="docker.io/ollama/ollama:latest"
-OLLAMA_PORT=11434
+OLLAMA_PORT="${OLLAMA_PORT:-11434}"
 
 FALKOR_CONTAINER="falkordb"
 FALKOR_IMAGE="docker.io/falkordb/falkordb:latest"
-FALKOR_PORT=6379
-FALKOR_STORAGE="/home/clawdi/.falkor_storage"
+FALKOR_PORT="${FALKOR_PORT:-6379}"
+FALKOR_STORAGE="${FALKOR_STORAGE:-/home/clawdi/.falkor_storage}"
 
-EMBED_MODEL="nomic-embed-text"
-
-FALKOR_CONTAINER="falkordb"
-FALKOR_IMAGE="docker.io/falkordb/falkordb:latest"
-FALKOR_PORT=6379
-FALKOR_STORAGE="/home/clawdi/.falkor_storage"
+EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
 
 DASHBOARD_CONTAINER="brain-dashboard"
 DASHBOARD_IMAGE="docker.io/library/nginx:alpine"
-DASHBOARD_PORT=8000
+DASHBOARD_PORT="${DASHBOARD_PORT:-8000}"
 WORKSPACE_DIR="/home/clawdi/.openclaw/workspace/openclaw-memory"
 
 # ── Helper Functions ────────────────────────────────────────────────────────
@@ -96,9 +100,6 @@ start_ollama() {
         info "Starting Ollama …"
         podman run -d --name "$OLLAMA_CONTAINER" --restart always -p "${OLLAMA_PORT}:11434" -v ollama_data:/root/.ollama:Z "$OLLAMA_IMAGE"
     fi
-    info "Pulling model ${EMBED_MODEL} …"
-    podman exec "$OLLAMA_CONTAINER" ollama pull "$EMBED_MODEL" || true
-}
 
     info "Waiting for Ollama (port $OLLAMA_PORT) …"
     for i in $(seq 1 30); do
@@ -109,22 +110,10 @@ start_ollama() {
         sleep 1
     done
 
-start_falkordb() {
-    info "Checking FalkorDB container …"
-    if container_running "$FALKOR_CONTAINER"; then
-        info "FalkorDB is already running ✓"
-    elif container_exists "$FALKOR_CONTAINER"; then
-        warn "FalkorDB exists, starting …"
-        podman start "$FALKOR_CONTAINER"
-    else
-        mkdir -p "$FALKOR_STORAGE"
-        info "Starting FalkorDB …"
-        podman run -d --name "$FALKOR_CONTAINER" --restart always -p "${FALKOR_PORT}:6379" -v "${FALKOR_STORAGE}:/data:Z" "$FALKOR_IMAGE"
-    fi
+    info "Pulling model ${EMBED_MODEL} …"
+    podman exec "$OLLAMA_CONTAINER" ollama pull "$EMBED_MODEL" || true
 }
 
-
-# ── FalkorDB ────────────────────────────────────────────────────────────────
 
 start_falkordb() {
     info "Checking FalkorDB container …"
@@ -163,13 +152,7 @@ start_falkordb() {
     exit 1
 }
 
-# ── Main ────────────────────────────────────────────────────────────────────
-
-main() {
-    echo "=============================================="
-    echo "  AI Memory – Podman Infrastructure Setup"
-    echo "=============================================="
-    echo ""
+# ── Dashboard ──────────────────────────────────────────────────────────────
 
 start_dashboard() {
     info "Checking Dashboard container …"
@@ -187,6 +170,11 @@ start_dashboard() {
 # ── Main ────────────────────────────────────────────────────────────────────
 
 main() {
+    echo "=============================================="
+    echo "  AI Memory – Podman Infrastructure Setup"
+    echo "=============================================="
+    echo ""
+
     start_qdrant
     start_ollama
     echo ""
@@ -208,3 +196,4 @@ main() {
 }
 
 main "$@"
+

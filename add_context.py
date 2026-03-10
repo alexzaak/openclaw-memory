@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
+import os
 import sqlite3
 import argparse
 from datetime import datetime
+from pathlib import Path
 
-DB_PATH = '/home/clawdi/.openclaw/short_term.db'
+from dotenv import load_dotenv
+
+load_dotenv()
+
+_sqlite_path = os.getenv("SQLITE_PATH", str(Path.home() / ".openclaw" / "short_term.db"))
+DB_PATH = os.path.expanduser(_sqlite_path)
 
 def main():
     parser = argparse.ArgumentParser(description="Add entry to short-term memory.")

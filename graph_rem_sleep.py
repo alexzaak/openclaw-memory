@@ -3,17 +3,22 @@ import sys
 import os
 import json
 import requests
+from dotenv import load_dotenv
 from datetime import datetime, date
 from qdrant_client import QdrantClient
 from falkordb import FalkorDB
 
-# --- Configuration ---
-QDRANT_URL = "http://127.0.0.1:6333"
-FALKOR_HOST = "127.0.0.1"
-FALKOR_PORT = 6379
-GRAPH_NAME = "openclaw_ontology"
-EMBED_MODEL = "nomic-embed-text"
-OLLAMA_URL = "http://127.0.0.1:11434"
+# --- Configuration (loaded from .env) ---
+load_dotenv()
+
+_qdrant_host = os.getenv("QDRANT_HOST", "127.0.0.1")
+_qdrant_port = os.getenv("QDRANT_PORT", "6333")
+QDRANT_URL = f"http://{_qdrant_host}:{_qdrant_port}"
+FALKOR_HOST = os.getenv("FALKOR_HOST", "127.0.0.1")
+FALKOR_PORT = int(os.getenv("FALKOR_PORT", "6379"))
+GRAPH_NAME = os.getenv("FALKOR_GRAPH", "openclaw_ontology")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 
 # This script would need an API key for the final analysis.
 # We can build it so that it receives Cypher queries from the agent

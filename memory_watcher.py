@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 import logging
@@ -28,6 +29,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
@@ -37,17 +39,19 @@ from qdrant_client.models import (
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
-# ── Configuration ──────────────────────────────────────────────────────────
+# ── Configuration (loaded from .env) ───────────────────────────────────────
 
-DEFAULT_SESSIONS_DIR = "/home/clawdi/.openclaw/agents/main/sessions/"
-OLLAMA_URL = "http://127.0.0.1:11434"
+load_dotenv()
+
+DEFAULT_SESSIONS_DIR = os.getenv("SESSIONS_DIR", "/home/clawdi/.openclaw/agents/main/sessions/")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_EMBED_ENDPOINT = f"{OLLAMA_URL}/api/embed"
-EMBED_MODEL = "nomic-embed-text"
-EMBED_DIMENSION = 768
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+EMBED_DIMENSION = int(os.getenv("EMBED_DIMENSION", "768"))
 
-QDRANT_HOST = "127.0.0.1"
-QDRANT_PORT = 6333
-COLLECTION_NAME = "openclaw_memory"
+QDRANT_HOST = os.getenv("QDRANT_HOST", "127.0.0.1")
+QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "openclaw_memory")
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 

@@ -1,11 +1,15 @@
 """
 config.py – Central configuration for the Clawdi Brain Dashboard Backend
 =========================================================================
-All values can be overridden via environment variables.
+All values can be overridden via environment variables or the .env file.
 """
 
 import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent / ".env")
 
 # ── Qdrant ──────────────────────────────────────────────────────────────────
 QDRANT_HOST = os.getenv("QDRANT_HOST", "127.0.0.1")

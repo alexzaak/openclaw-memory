@@ -5,14 +5,21 @@ import json
 import sqlite3
 import subprocess
 from datetime import datetime, date
+from pathlib import Path
+
+from dotenv import load_dotenv
 from falkordb import FalkorDB
 
-DB_PATH = '/home/clawdi/.openclaw/short_term.db'
-FALKOR_HOST = "127.0.0.1"
-FALKOR_PORT = 6379
-GRAPH_NAME = "openclaw_ontology"
+load_dotenv()
 
-QDRANT_BY_DATE_SCRIPT = "/home/clawdi/.openclaw/workspace/openclaw-memory/search_by_date.py"
+_sqlite_path = os.getenv("SQLITE_PATH", str(Path.home() / ".openclaw" / "short_term.db"))
+DB_PATH = os.path.expanduser(_sqlite_path)
+FALKOR_HOST = os.getenv("FALKOR_HOST", "127.0.0.1")
+FALKOR_PORT = int(os.getenv("FALKOR_PORT", "6379"))
+GRAPH_NAME = os.getenv("FALKOR_GRAPH", "openclaw_ontology")
+
+# Path to the search_by_date.py script (relative to this file)
+QDRANT_BY_DATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "search_by_date.py")
 
 
 def _resolve_target_date() -> str:
@@ -66,11 +73,11 @@ def extract_daily_context():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Hole alle Kontext-Einträge
+    # Fetch all context entries
     cursor.execute("SELECT id, timestamp, scope, content FROM daily_context ORDER BY timestamp ASC")
     rows = cursor.fetchall()
 
-    # Hole alle Learnings aus den logs
+    # Fetch all learnings from logs
     cursor.execute("SELECT id, timestamp, category, content FROM logs WHERE category = 'LRN' ORDER BY timestamp ASC")
     lrn_rows = cursor.fetchall()
 
@@ -99,38 +106,38 @@ def compress_context(summary_json_str):
     try:
         summaries = json.loads(summary_json_str)
     except Exception as e:
-        print(f"Fehler beim Parsen der Summaries (JSON erwartet): {e}")
+        print(f"Error parsing summaries (JSON expected): {e}")
         sys.exit(1)
         
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Lösche alte Kontext-Einträge
+    # Delete old context entries
     cursor.execute("DELETE FROM daily_context")
     
-    # Füge die komprimierten Zusammenfassungen als EINEN neuen Eintrag pro Scope ein
-    # Wir setzen den Zeitstempel auf 23:59 des aktuellen/gestrigen Tages
+    # Insert compressed summaries as one new entry per scope
+    # Set timestamp to 23:59 of the current/previous day
     summary_time = datetime.now().replace(hour=23, minute=59, second=59).isoformat()
     
     for scope, text in summaries.items():
         if text.strip():
             cursor.execute(
                 "INSERT INTO daily_context (timestamp, scope, content) VALUES (?, ?, ?)",
-                (summary_time, scope, f"Zusammenfassung: {text}")
+                (summary_time, scope, f"Summary: {text}")
             )
     
-    # (Optional) LRN Logs als verarbeitet markieren oder löschen, 
-    # belassen wir vorerst fürs Dashboard.
+    # (Optional) Mark LRN logs as processed or delete;
+    # keeping them for now for the dashboard.
     
     conn.commit()
     conn.close()
-    print("✅ Kurzzeitgedächtnis erfolgreich komprimiert und bereinigt.")
+    print("✅ Short-term memory successfully compressed and cleaned up.")
 
 def ingest_graph(cypher_json_str):
     try:
         queries = json.loads(cypher_json_str)
     except Exception as e:
-        print(f"Fehler beim Parsen der Cypher Queries (JSON Array erwartet): {e}")
+        print(f"Error parsing Cypher queries (JSON array expected): {e}")
         sys.exit(1)
         
     db = FalkorDB(host=FALKOR_HOST, port=FALKOR_PORT)
@@ -143,9 +150,9 @@ def ingest_graph(cypher_json_str):
                 graph.query(q)
                 success_count += 1
             except Exception as e:
-                print(f"Fehler bei Query '{q}': {e}")
+                print(f"Error on query '{q}': {e}")
                 
-    print(f"✅ {success_count}/{len(queries)} Cypher Queries erfolgreich in FalkorDB überführt.")
+    print(f"✅ {success_count}/{len(queries)} Cypher queries successfully ingested into FalkorDB.")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -158,13 +165,13 @@ if __name__ == "__main__":
         extract_daily_context()
     elif action == "compress":
         if len(sys.argv) < 3:
-            print("Fehler: JSON String für 'compress' erwartet.")
+            print("Error: JSON string expected for 'compress'.")
             sys.exit(1)
         compress_context(sys.argv[2])
     elif action == "ingest":
         if len(sys.argv) < 3:
-            print("Fehler: JSON String für 'ingest' erwartet.")
+            print("Error: JSON string expected for 'ingest'.")
             sys.exit(1)
         ingest_graph(sys.argv[2])
     else:
-        print(f"Unbekannte Aktion: {action}")
+        print(f"Unknown action: {action}")
