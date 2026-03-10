@@ -140,6 +140,49 @@ python3 import_history.py    # Imports all sessions into Qdrant
 python3 migrate_ontology.py  # Imports existing graph.jsonl into FalkorDB
 ```
 
+### Backup & Restore
+
+All three databases can be backed up and restored with a single command. Backups are stored in `BACKUP_DIR` (default `~/.openclaw/backups`), organized by database type.
+
+**Backup:**
+```bash
+bash backup.sh              # Backup all databases
+bash backup.sh qdrant       # Backup Qdrant only
+bash backup.sh falkordb     # Backup FalkorDB only
+bash backup.sh sqlite       # Backup SQLite only
+```
+
+**Restore:**
+```bash
+# Restore from a specific backup file
+bash restore.sh qdrant    ~/.openclaw/backups/qdrant/qdrant_openclaw_memory_20260310.snapshot
+bash restore.sh falkordb  ~/.openclaw/backups/falkordb/falkordb_20260310.rdb
+bash restore.sh sqlite    ~/.openclaw/backups/sqlite/short_term_20260310.db
+
+# Restore from the latest available backup
+bash restore.sh --latest all        # Restore all databases
+bash restore.sh --latest sqlite     # Restore SQLite only
+```
+
+| Method | Qdrant | FalkorDB | SQLite |
+|---|---|---|---|
+| **Backup** | REST snapshot API | `redis-cli BGSAVE` + copy | `sqlite3 .backup` |
+| **Restore** | Snapshot recover API | Stop → replace RDB → restart | File copy |
+| **Output** | `.snapshot` | `.rdb` | `.db` |
+
+**Scheduling (cron):**
+```cron
+# Daily backup at 02:00
+0 2 * * * cd /path/to/openclaw-memory && bash backup.sh >> /var/log/clawdi-backup.log 2>&1
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `BACKUP_DIR` | `~/.openclaw/backups` | Directory for backup files |
+| `BACKUP_RETAIN` | `5` | Number of backups to keep per database |
+
+> **Safety:** `restore.sh` always creates a pre-restore backup before overwriting data and asks for confirmation.
+
 ## 🧠 Brain Dashboard
 
 The **Clawdi Brain Dashboard** is a full-stack web application:
