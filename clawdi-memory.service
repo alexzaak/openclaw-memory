@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=clawdi
 WorkingDirectory=/home/clawdi/.openclaw/workspace/openclaw-memory
-ExecStart=/usr/bin/python3 memory_watcher.py
+ExecStart=/usr/bin/python3 auto_memory/memory_watcher.py
 Restart=always
 RestartSec=5
 

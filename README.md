@@ -46,16 +46,27 @@ The system consists of four core components that work hand in hand:
 - **FalkorDB:** High-performance graph database for ontologies.
 - **Nginx:** Web server for visualization.
 
-### 🐍 Python Core
-- `memory_watcher.py`: Watches session files and feeds Qdrant.
+### 🐍 Python Scripts
+
+**`auto_memory/`** — Qdrant / Vector Search
+- `memory_watcher.py`: Watches session files and feeds Qdrant in real-time.
+- `search.py`: Semantic search CLI for Qdrant.
+- `search_by_date.py`: Date-filtered Qdrant dump.
+- `import_history.py`: Bulk-imports existing JSONL sessions into Qdrant.
+
+**`knowledge_graph/`** — FalkorDB / Ontology
 - `falkor_client.py`: Interface for Cypher queries to the graph DB.
-- `search.py` / `search_by_date.py`: CLI utilities for querying Qdrant (semantic search / date filter).
-- `add_context.py`: Adds an entry to short-term memory (SQLite).
-- `get_context.py`: Retrieves recent short-term memory entries by scope.
-- `migrate_short_term.py`: Creates the `daily_context` SQLite table (initial setup).
-- `rem_sleep_v2.py`: REM-sleep pipeline — extract daily context (SQLite + Qdrant), compress SQLite entries, ingest Cypher into FalkorDB.
-- `graph_rem_sleep.py`: Legacy helper (Qdrant extract + Cypher ingest).
+- `migrate_ontology.py`: Imports `graph.jsonl` into FalkorDB.
 - `generate_brain_map.py`: Generates the interactive HTML visualization.
+
+**`short_term_memory/`** — SQLite / Daily Context
+- `add_context.py`: Adds a scoped entry to short-term memory.
+- `get_context.py`: Retrieves recent entries by scope.
+- `migrate_short_term.py`: Creates the `daily_context` table (initial setup).
+
+**`rem_sleep/`** — Nightly Synthesis Pipeline
+- `rem_sleep_v2.py`: Extract daily context, compress SQLite, ingest Cypher into FalkorDB.
+- `graph_rem_sleep.py`: Legacy helper (Qdrant extract + Cypher ingest).
 
 ## Quick Start
 
@@ -118,20 +129,20 @@ The short-term memory stores day-to-day context — moods, plans, reminders — 
 
 **Initial setup** (creates the `daily_context` table):
 ```bash
-python3 migrate_short_term.py
+python3 short_term_memory/migrate_short_term.py
 ```
 
 **Adding context** (called by the agent during conversations):
 ```bash
-python3 add_context.py --scope alex  --text "Currently refactoring the memory system"
-python3 add_context.py --scope laura --text "Has an exam on Thursday"
-python3 add_context.py --scope system --text "Qdrant restarted after OOM"
+python3 short_term_memory/add_context.py --scope alex  --text "Currently refactoring the memory system"
+python3 short_term_memory/add_context.py --scope laura --text "Has an exam on Thursday"
+python3 short_term_memory/add_context.py --scope system --text "Qdrant restarted after OOM"
 ```
 
 **Reading context** (used by the agent at the start of each session):
 ```bash
-python3 get_context.py --scope alex           # Last 48h for alex + family + system
-python3 get_context.py --scope laura --hours 24  # Last 24h
+python3 short_term_memory/get_context.py --scope alex           # Last 48h for alex + family + system
+python3 short_term_memory/get_context.py --scope laura --hours 24  # Last 24h
 ```
 
 | Scope | Purpose |
@@ -151,33 +162,33 @@ The REM-sleep pipeline is split into two steps:
 
 #### 1) Extract daily context (SQLite + Qdrant)
 ```bash
-python3 rem_sleep_v2.py extract > /tmp/rem_sleep_context.json
+python3 rem_sleep/rem_sleep_v2.py extract > /tmp/rem_sleep_context.json
 ```
 
 By default the target date is the local system date. You can override it:
 ```bash
-REM_SLEEP_DATE=2026-03-08 python3 rem_sleep_v2.py extract
+REM_SLEEP_DATE=2026-03-08 python3 rem_sleep/rem_sleep_v2.py extract
 ```
 
 `rem_sleep_v2.py` shells out to the canonical Qdrant-by-date script and embeds its output into the JSON under `qdrant`:
 ```bash
-python3 search_by_date.py --date 2026-03-08
+python3 auto_memory/search_by_date.py --date 2026-03-08
 ```
 
 #### 2) Apply compression + graph ingestion (agent-driven)
 After the agent produces (a) scope summaries and (b) Cypher queries:
 ```bash
-python3 rem_sleep_v2.py compress '<json summaries>'
-python3 rem_sleep_v2.py ingest   '<json cypher queries>'
+python3 rem_sleep/rem_sleep_v2.py compress '<json summaries>'
+python3 rem_sleep/rem_sleep_v2.py ingest   '<json cypher queries>'
 ```
 
-> Note: `graph_rem_sleep.py` currently only supports `extract` (Qdrant → stdout) and `ingest` (stdin JSON Cypher).
+> Note: `rem_sleep/graph_rem_sleep.py` currently only supports `extract` (Qdrant → stdout) and `ingest` (stdin JSON Cypher).
 
 ### Migrating Existing Data
 To import existing JSONL logs or Markdown files:
 ```bash
-python3 import_history.py    # Imports all sessions into Qdrant
-python3 migrate_ontology.py  # Imports existing graph.jsonl into FalkorDB
+python3 auto_memory/import_history.py           # Imports all sessions into Qdrant
+python3 knowledge_graph/migrate_ontology.py      # Imports existing graph.jsonl into FalkorDB
 ```
 
 ### Backup & Restore

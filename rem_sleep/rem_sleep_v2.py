@@ -18,8 +18,8 @@ FALKOR_HOST = os.getenv("FALKOR_HOST", "127.0.0.1")
 FALKOR_PORT = int(os.getenv("FALKOR_PORT", "6379"))
 GRAPH_NAME = os.getenv("FALKOR_GRAPH", "openclaw_ontology")
 
-# Path to the search_by_date.py script (relative to this file)
-QDRANT_BY_DATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "search_by_date.py")
+# Path to the search_by_date.py script (in auto_memory/ folder)
+QDRANT_BY_DATE_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "auto_memory", "search_by_date.py")
 
 
 def _resolve_target_date() -> str:
