@@ -58,10 +58,12 @@ The system consists of four core components that work hand in hand:
 - `falkor_client.py`: Interface for Cypher queries to the graph DB.
 - `migrate_ontology.py`: Imports `graph.jsonl` into FalkorDB.
 
-**`short_term_memory/`** — SQLite / Daily Context
+**`short_term_memory/`** — SQLite / Daily Context & Learnings
+- `setup_db.py`: Creates all tables (`daily_context`, `learnings`).
 - `add_context.py`: Adds a scoped entry to short-term memory.
 - `get_context.py`: Retrieves recent entries by scope.
-- `migrate_short_term.py`: Creates the `daily_context` table (initial setup).
+- `add_learning.py`: Records a learning/insight into the database.
+- `get_learnings.py`: Retrieves learnings (with filters for category, time, processed state).
 
 **`rem_sleep/`** — Nightly Synthesis Pipeline
 - `rem_sleep_v2.py`: Extract daily context, compress SQLite, ingest Cypher into FalkorDB.
@@ -126,9 +128,9 @@ systemctl --user enable --now clawdi-memory.service
 
 The short-term memory stores day-to-day context — moods, plans, reminders — in a local SQLite database (`SQLITE_PATH`, default `~/.openclaw/short_term.db`). Entries are scoped per person or domain.
 
-**Initial setup** (creates the `daily_context` table):
+**Initial setup** (creates `daily_context` and `learnings` tables):
 ```bash
-python3 short_term_memory/migrate_short_term.py
+python3 short_term_memory/setup_db.py
 ```
 
 **Adding context** (called by the agent during conversations):
@@ -142,6 +144,21 @@ python3 short_term_memory/add_context.py --scope system --text "Qdrant restarted
 ```bash
 python3 short_term_memory/get_context.py --scope alex           # Last 48h for alex + family + system
 python3 short_term_memory/get_context.py --scope laura --hours 24  # Last 24h
+```
+
+**Adding learnings** (facts, preferences, insights discovered during chats):
+```bash
+python3 short_term_memory/add_learning.py --text "Laura prefers almond milk" --category preference
+python3 short_term_memory/add_learning.py --text "Alex dislikes surprises" --source "conversation with Laura"
+python3 short_term_memory/add_learning.py --text "Qdrant needs restart after OOM" --category system
+```
+
+**Reading learnings:**
+```bash
+python3 short_term_memory/get_learnings.py                    # Unprocessed only
+python3 short_term_memory/get_learnings.py --all               # Include processed
+python3 short_term_memory/get_learnings.py --category fact     # Filter by category
+python3 short_term_memory/get_learnings.py --json              # JSON output for agent consumption
 ```
 
 | Scope | Purpose |
@@ -181,7 +198,12 @@ python3 rem_sleep/rem_sleep_v2.py compress '<json summaries>'
 python3 rem_sleep/rem_sleep_v2.py ingest   '<json cypher queries>'
 ```
 
-> Note: `rem_sleep/graph_rem_sleep.py` currently only supports `extract` (Qdrant → stdout) and `ingest` (stdin JSON Cypher).
+#### 3) Ingest learnings into knowledge graph
+The agent extracts learnings from the `extract` output and creates `:Learning` nodes:
+```bash
+python3 rem_sleep/rem_sleep_v2.py ingest_learnings '<json learnings array>'
+```
+Each learning becomes a `(:Learning {content, category, source, date})` node in FalkorDB. Processed learnings are marked in SQLite to avoid re-ingestion.
 
 ### Migrating Existing Data
 To import existing JSONL logs or Markdown files:

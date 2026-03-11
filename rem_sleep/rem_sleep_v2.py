@@ -77,8 +77,8 @@ def extract_daily_context():
     cursor.execute("SELECT id, timestamp, scope, content FROM daily_context ORDER BY timestamp ASC")
     rows = cursor.fetchall()
 
-    # Fetch all learnings from logs
-    cursor.execute("SELECT id, timestamp, category, content FROM logs WHERE category = 'LRN' ORDER BY timestamp ASC")
+    # Fetch unprocessed learnings
+    cursor.execute("SELECT id, timestamp, category, source, content FROM learnings WHERE processed = 0 ORDER BY timestamp ASC")
     lrn_rows = cursor.fetchall()
 
     conn.close()
@@ -88,7 +88,10 @@ def extract_daily_context():
 
     output = {
         "context": {},
-        "learnings": [{"id": r[0], "time": r[1], "content": r[3]} for r in lrn_rows],
+        "learnings": [
+            {"id": r[0], "time": r[1], "category": r[2], "source": r[3], "content": r[4]}
+            for r in lrn_rows
+        ],
         # Additional context layer for REM sleep: raw daily Qdrant dump
         # (vector DB / long-term memory stream)
         "qdrant": qdrant_dump,
@@ -126,8 +129,8 @@ def compress_context(summary_json_str):
                 (summary_time, scope, f"Summary: {text}")
             )
     
-    # (Optional) Mark LRN logs as processed or delete;
-    # keeping them for now for the dashboard.
+    # Mark learnings as processed
+    cursor.execute("UPDATE learnings SET processed = 1 WHERE processed = 0")
     
     conn.commit()
     conn.close()
@@ -154,9 +157,74 @@ def ingest_graph(cypher_json_str):
                 
     print(f"✅ {success_count}/{len(queries)} Cypher queries successfully ingested into FalkorDB.")
 
+def ingest_learnings(learnings_json_str):
+    """Ingest learnings as :Learning nodes into FalkorDB.
+
+    Expected JSON format:
+    [
+        {"id": 1, "content": "...", "category": "fact", "source": "conversation"},
+        ...
+    ]
+
+    Each learning becomes a (:Learning) node with properties:
+      content, category, source, date
+    """
+    try:
+        learnings = json.loads(learnings_json_str)
+    except Exception as e:
+        print(f"Error parsing learnings (JSON array expected): {e}")
+        sys.exit(1)
+
+    db = FalkorDB(host=FALKOR_HOST, port=FALKOR_PORT)
+    graph = db.select_graph(GRAPH_NAME)
+
+    today = _resolve_target_date()
+    success_count = 0
+    learning_ids = []
+
+    for item in learnings:
+        content = item.get("content", "").strip()
+        if not content:
+            continue
+
+        category = item.get("category", "general")
+        source = item.get("source", "")
+        learning_id = item.get("id")
+
+        # Escape single quotes for Cypher
+        safe_content = content.replace("'", "\\'")
+        safe_source = (source or "").replace("'", "\\'")
+        safe_category = category.replace("'", "\\'")
+
+        query = (
+            f"MERGE (l:Learning {{content: '{safe_content}'}}) "
+            f"SET l.category = '{safe_category}', "
+            f"l.source = '{safe_source}', "
+            f"l.date = '{today}'"
+        )
+
+        try:
+            graph.query(query)
+            success_count += 1
+            if learning_id is not None:
+                learning_ids.append(learning_id)
+        except Exception as e:
+            print(f"Error ingesting learning: {e}")
+
+    # Mark ingested learnings as processed in SQLite
+    if learning_ids:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        placeholders = ','.join(['?'] * len(learning_ids))
+        cursor.execute(f"UPDATE learnings SET processed = 1 WHERE id IN ({placeholders})", learning_ids)
+        conn.commit()
+        conn.close()
+
+    print(f"✅ {success_count}/{len(learnings)} learnings ingested as :Learning nodes into FalkorDB.")
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: rem_sleep_v2.py <extract|compress|ingest> [json_data]")
+        print("Usage: rem_sleep_v2.py <extract|compress|ingest|ingest_learnings> [json_data]")
         sys.exit(1)
         
     action = sys.argv[1]
@@ -173,5 +241,10 @@ if __name__ == "__main__":
             print("Error: JSON string expected for 'ingest'.")
             sys.exit(1)
         ingest_graph(sys.argv[2])
+    elif action == "ingest_learnings":
+        if len(sys.argv) < 3:
+            print("Error: JSON string expected for 'ingest_learnings'.")
+            sys.exit(1)
+        ingest_learnings(sys.argv[2])
     else:
         print(f"Unknown action: {action}")
