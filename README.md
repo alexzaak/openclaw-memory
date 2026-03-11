@@ -4,11 +4,12 @@ Fully automated, semantic and structured long-term memory for Clawdi (OpenClaw).
 
 ## Architecture
 
-The system consists of three core components that work hand in hand:
+The system consists of four core components that work hand in hand:
 
 1.  **Auto-Memory (Vector Search):** Every chat message is vectorized in real-time and stored in Qdrant. Enables semantic search ("feeling-based search").
 2.  **Knowledge Graph (Structure):** Facts and relationships (people, projects, hardware) are stored in FalkorDB (graph DB).
-3.  **REM Sleep (Synthesis):** A nightly cron job analyzes the day's chats and automatically transfers new insights into the knowledge graph.
+3.  **Short-Term Memory (Context):** Day-to-day context — current moods, plans, reminders — is stored in a local SQLite database. Scoped per person (alex, laura, family, system) and compressed nightly by REM Sleep.
+4.  **REM Sleep (Synthesis):** A nightly pipeline reads the day's chats + short-term context, compresses SQLite entries into summaries, and transfers new insights into the knowledge graph.
 
 ```
 ┌─────────────────────┐    watchdog     ┌──────────────────┐
@@ -16,20 +17,25 @@ The system consists of three core components that work hand in hand:
 │  (OpenClaw Agent)   │   file change   │  (Python Service)│
 └─────────────────────┘                 └────────┬─────────┘
                                                  │
-            ┌────────────────────────────────────┼────────────────────────────────────┐
-            ▼                                    ▼                                    ▼
-   ┌────────────────┐                  ┌─────────────────┐                  ┌──────────────────┐
-   │  Ollama        │                  │  Qdrant         │                  │  FalkorDB        │
-   │  nomic-embed   │                  │  Vector DB      │                  │  Graph DB        │
-   │  :11434        │                  │  :6333          │                  │  :6379           │
-   └────────────────┘                  └─────────────────┘                  └──────────────────┘
-            │                                                                         │
-            └────────────────────────────────────┬────────────────────────────────────┘
-                                                 ▼
-                                       ┌──────────────────┐
-                                       │  Brain Dashboard │
-                                       │  (Nginx / Port 8000)
-                                       └──────────────────┘
+      ┌──────────────────────┬───────────────────┼───────────────────┐
+      ▼                      ▼                   ▼                   ▼
+┌────────────┐     ┌─────────────────┐  ┌──────────────────┐ ┌──────────────┐
+│  Ollama    │     │  Qdrant         │  │  FalkorDB        │ │  SQLite      │
+│  nomic-    │     │  Vector DB      │  │  Graph DB        │ │  Short-Term  │
+│  embed     │     │  :6333          │  │  :6379           │ │  Memory      │
+│  :11434    │     │  (Long-Term)    │  │  (Knowledge)     │ │  (Context)   │
+└────────────┘     └─────────────────┘  └──────────────────┘ └──────┬───────┘
+      │                     │                    │                  │
+      │                     │                    │    add_context ▲ │ ▼ get_context
+      │                     │                    │           ┌──────┴───────┐
+      │                     │                    │           │  Agent CLI   │
+      │                     │                    │           └──────────────┘
+      └─────────────────────┴────────────────────┴──────────────────┐
+                                                                   ▼
+                                                         ┌──────────────────┐
+                                                         │  Brain Dashboard │
+                                                         │  (Nginx / :8000) │
+                                                         └──────────────────┘
 ```
 
 ## Components & Tools
@@ -43,8 +49,11 @@ The system consists of three core components that work hand in hand:
 ### 🐍 Python Core
 - `memory_watcher.py`: Watches session files and feeds Qdrant.
 - `falkor_client.py`: Interface for Cypher queries to the graph DB.
-- `search_by_date.py`: Canonical utility to dump Qdrant entries for a given date.
-- `rem_sleep_v2.py`: REM-sleep helper for extracting daily context (SQLite + Qdrant), compressing SQLite context, and ingesting Cypher into FalkorDB.
+- `search.py` / `search_by_date.py`: CLI utilities for querying Qdrant (semantic search / date filter).
+- `add_context.py`: Adds an entry to short-term memory (SQLite).
+- `get_context.py`: Retrieves recent short-term memory entries by scope.
+- `migrate_short_term.py`: Creates the `daily_context` SQLite table (initial setup).
+- `rem_sleep_v2.py`: REM-sleep pipeline — extract daily context (SQLite + Qdrant), compress SQLite entries, ingest Cypher into FalkorDB.
 - `graph_rem_sleep.py`: Legacy helper (Qdrant extract + Cypher ingest).
 - `generate_brain_map.py`: Generates the interactive HTML visualization.
 
@@ -102,6 +111,37 @@ systemctl --user enable --now clawdi-memory.service
 ```
 
 ## Maintenance & Operations
+
+### Short-Term Memory (SQLite)
+
+The short-term memory stores day-to-day context — moods, plans, reminders — in a local SQLite database (`SQLITE_PATH`, default `~/.openclaw/short_term.db`). Entries are scoped per person or domain.
+
+**Initial setup** (creates the `daily_context` table):
+```bash
+python3 migrate_short_term.py
+```
+
+**Adding context** (called by the agent during conversations):
+```bash
+python3 add_context.py --scope alex  --text "Currently refactoring the memory system"
+python3 add_context.py --scope laura --text "Has an exam on Thursday"
+python3 add_context.py --scope system --text "Qdrant restarted after OOM"
+```
+
+**Reading context** (used by the agent at the start of each session):
+```bash
+python3 get_context.py --scope alex           # Last 48h for alex + family + system
+python3 get_context.py --scope laura --hours 24  # Last 24h
+```
+
+| Scope | Purpose |
+|---|---|
+| `alex` | Personal context for Alex |
+| `laura` | Personal context for Laura |
+| `family` | Shared family context |
+| `system` | Infrastructure notes, errors, maintenance |
+
+> **Lifecycle:** Entries accumulate during the day. The nightly **REM Sleep** pipeline compresses them into summaries and clears the table — keeping short-term memory lean.
 
 ### Nightly Analysis (REM Sleep)
 The REM-sleep pipeline is split into two steps:
