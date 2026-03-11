@@ -1,7 +1,7 @@
 # ============================================================================
 # Clawdi Brain Dashboard – Docker Compose / Podman Compose
 # ============================================================================
-# Voraussetzung: Qdrant, FalkorDB und Ollama laufen bereits (via setup.sh).
+# Prerequisite: Qdrant, FalkorDB and Ollama are already running (via setup.sh).
 # Start:  podman compose up -d --build
 # ============================================================================
 

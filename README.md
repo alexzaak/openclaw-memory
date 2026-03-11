@@ -57,7 +57,6 @@ The system consists of four core components that work hand in hand:
 **`knowledge_graph/`** — FalkorDB / Ontology
 - `falkor_client.py`: Interface for Cypher queries to the graph DB.
 - `migrate_ontology.py`: Imports `graph.jsonl` into FalkorDB.
-- `generate_brain_map.py`: Generates the interactive HTML visualization.
 
 **`short_term_memory/`** — SQLite / Daily Context
 - `add_context.py`: Adds a scoped entry to short-term memory.
@@ -236,35 +235,75 @@ bash restore.sh --latest sqlite     # Restore SQLite only
 
 ## 🧠 Brain Dashboard
 
-The **Clawdi Brain Dashboard** is a full-stack web application:
+The **Clawdi Brain Dashboard** is a full-stack web application for visualizing and interacting with all memory layers. Located in `dashboard/`.
 
-- **Neural Feed** – Semantic search through all memories (Qdrant)
-- **Knowledge Vault** – Entity explorer for the knowledge graph (FalkorDB)
-- **Health Monitor** – System status, temperature history, learning log (SQLite)
+### Pages
 
-### Starting
+| Page | Path | Data Source | Description |
+|---|---|---|---|
+| **Neural Feed** | `/` | Qdrant | Semantic search through all memories |
+| **Knowledge Vault** | `/knowledge` | FalkorDB | Entity explorer for the knowledge graph |
+| **Health Monitor** | `/health` | SQLite | System status, temperature history, daily context, learning log |
+
+### Architecture
+
+```
+dashboard/
+├── docker-compose.yml         # Podman/Docker compose for both services
+├── seed_sqlite.py             # Seeds SQLite with demo data
+├── backend/                   # FastAPI (Python)
+│   ├── main.py                # App entrypoint, CORS, router registration
+│   ├── config.py              # Central config (reads .env)
+│   ├── routers/
+│   │   ├── neural_feed.py     # GET /api/search?q=...
+│   │   ├── knowledge_vault.py # GET /api/graph/nodes, /api/graph/neighbors
+│   │   └── health_monitor.py  # GET /api/health/status, /api/health/daily-context
+│   ├── services/              # Business logic (Qdrant, FalkorDB, SQLite clients)
+│   ├── Dockerfile
+│   └── requirements.txt
+└── frontend/                  # React + Vite
+    ├── src/
+    │   ├── App.jsx            # Layout, sidebar, routing
+    │   ├── pages/             # NeuralFeed, KnowledgeVault, HealthMonitor
+    │   ├── components/        # Sidebar, ErrorBox, DailyContextWidget
+    │   └── index.css          # Global styles (Cyber-Minimalist theme)
+    ├── Dockerfile
+    └── package.json
+```
+
+### Deployment (Podman Compose)
 
 ```bash
-# Seed SQLite with demo data
+# Seed SQLite with demo data (optional)
 python3 dashboard/seed_sqlite.py
 
-# Start dashboard (backend + frontend)
+# Start backend + frontend containers
 cd dashboard && podman compose up -d --build
 ```
 
-Dashboard available at: `http://<server-ip>:80`
-API Docs: `http://<server-ip>:8080/docs`
+| Service | URL | Description |
+|---|---|---|
+| Dashboard UI | `http://<server-ip>:80` | Nginx serving the React SPA |
+| Dashboard API | `http://<server-ip>:8080` | FastAPI backend |
+| API Docs | `http://<server-ip>:8080/docs` | Interactive Swagger UI |
 
-### Development (Local)
+> **Prerequisite:** Qdrant, FalkorDB, and Ollama must already be running (via `setup.sh`).
+
+### Local Development
 
 ```bash
-# Backend
-cd dashboard/backend && pip install -r requirements.txt
+# Backend (terminal 1)
+cd dashboard/backend
+pip install -r requirements.txt
 uvicorn main:app --reload --port 8080
 
-# Frontend (in a separate terminal)
-cd dashboard/frontend && npm install && npm run dev
+# Frontend (terminal 2)
+cd dashboard/frontend
+npm install
+npm run dev
 ```
+
+The frontend dev server proxies API requests to `http://localhost:8080`.
 
 ## Ports
 
