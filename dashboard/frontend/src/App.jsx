@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import NeuralFeed from './pages/NeuralFeed'
 import KnowledgeVault from './pages/KnowledgeVault'
-import HealthMonitor from './pages/HealthMonitor'
+import ShortTermMemory from './pages/ShortTermMemory'
 
 export default function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -28,7 +28,7 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<NeuralFeed />} />
                     <Route path="/knowledge" element={<KnowledgeVault />} />
-                    <Route path="/health" element={<HealthMonitor />} />
+                    <Route path="/memory" element={<ShortTermMemory />} />
                 </Routes>
             </main>
         </div>

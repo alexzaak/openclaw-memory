@@ -265,28 +265,27 @@ The **Clawdi Brain Dashboard** is a full-stack web application for visualizing a
 |---|---|---|---|
 | **Neural Feed** | `/` | Qdrant | Semantic search through all memories |
 | **Knowledge Vault** | `/knowledge` | FalkorDB | Entity explorer for the knowledge graph |
-| **Health Monitor** | `/health` | SQLite | System status, temperature history, daily context, learning log |
+| **Short-Term Memory** | `/memory` | SQLite | Daily context entries and learnings |
 
 ### Architecture
 
 ```
 dashboard/
 ├── docker-compose.yml         # Podman/Docker compose for both services
-├── seed_sqlite.py             # Seeds SQLite with demo data
 ├── backend/                   # FastAPI (Python)
 │   ├── main.py                # App entrypoint, CORS, router registration
 │   ├── config.py              # Central config (reads .env)
 │   ├── routers/
 │   │   ├── neural_feed.py     # GET /api/search?q=...
 │   │   ├── knowledge_vault.py # GET /api/graph/nodes, /api/graph/neighbors
-│   │   └── health_monitor.py  # GET /api/health/status, /api/health/daily-context
+│   │   └── short_term_memory.py # GET /api/memory/daily-context, /api/memory/learnings
 │   ├── services/              # Business logic (Qdrant, FalkorDB, SQLite clients)
 │   ├── Dockerfile
 │   └── requirements.txt
 └── frontend/                  # React + Vite
     ├── src/
     │   ├── App.jsx            # Layout, sidebar, routing
-    │   ├── pages/             # NeuralFeed, KnowledgeVault, HealthMonitor
+    │   ├── pages/             # NeuralFeed, KnowledgeVault, ShortTermMemory
     │   ├── components/        # Sidebar, ErrorBox, DailyContextWidget
     │   └── index.css          # Global styles (Cyber-Minimalist theme)
     ├── Dockerfile
@@ -296,9 +295,6 @@ dashboard/
 ### Deployment (Podman Compose)
 
 ```bash
-# Seed SQLite with demo data (optional)
-python3 dashboard/seed_sqlite.py
-
 # Start backend + frontend containers
 cd dashboard && podman compose up -d --build
 ```

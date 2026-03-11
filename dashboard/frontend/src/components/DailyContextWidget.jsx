@@ -68,7 +68,7 @@ export default function DailyContextWidget() {
         try {
             const params = new URLSearchParams({ limit: '50' })
             if (activeScope) params.set('scope', activeScope)
-            const data = await apiFetch(`/api/health/daily-context?${params}`)
+            const data = await apiFetch(`/api/memory/daily-context?${params}`)
             setEntries(data.entries || [])
         } catch (err) {
             setError(err.message)

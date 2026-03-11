@@ -2,8 +2,9 @@
 sqlite_service.py – SQLite Service for short_term.db
 =====================================================
 Schema:
-    logs:  id (PK), timestamp (DATETIME), category (TEXT), content (TEXT), mood_score (INTEGER)
-    state: key (TEXT PK), value (TEXT), updated_at (DATETIME)
+    daily_context: id (PK), timestamp (TEXT), scope (TEXT), content (TEXT)
+    learnings:     id (PK), timestamp (TEXT), category (TEXT), source (TEXT),
+                   content (TEXT), processed (INTEGER)
 """
 
 import logging
@@ -25,83 +26,7 @@ def _get_conn():
         conn.close()
 
 
-def get_logs(
-    category: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
-) -> list[dict]:
-    """Get logs, optionally filtered by category."""
-    with _get_conn() as conn:
-        if category:
-            rows = conn.execute(
-                "SELECT * FROM logs WHERE category = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                (category, limit, offset),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM logs ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                (limit, offset),
-            ).fetchall()
-        return [dict(row) for row in rows]
-
-
-def get_log_categories() -> list[str]:
-    """Return distinct log categories."""
-    with _get_conn() as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT category FROM logs ORDER BY category"
-        ).fetchall()
-        return [row["category"] for row in rows]
-
-
-def get_state() -> dict:
-    """Return all current state key-value pairs."""
-    with _get_conn() as conn:
-        rows = conn.execute(
-            "SELECT key, value, updated_at FROM state ORDER BY key"
-        ).fetchall()
-        return {row["key"]: {"value": row["value"], "updated_at": row["updated_at"]} for row in rows}
-
-
-def get_state_value(key: str) -> dict | None:
-    """Return a single state value."""
-    with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT key, value, updated_at FROM state WHERE key = ?", (key,)
-        ).fetchone()
-        return dict(row) if row else None
-
-
-def get_mood_timeline(days: int = 7) -> list[dict]:
-    """Return mood_score time-series for the last N days."""
-    with _get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT timestamp, mood_score
-            FROM logs
-            WHERE mood_score IS NOT NULL
-              AND timestamp >= datetime('now', ?)
-            ORDER BY timestamp ASC
-            """,
-            (f"-{days} days",),
-        ).fetchall()
-        return [dict(row) for row in rows]
-
-
-def get_learning_log(limit: int = 20) -> list[dict]:
-    """Return the latest LRN (learning / self-improvement) entries."""
-    with _get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT id, timestamp, content, mood_score
-            FROM logs
-            WHERE category = 'LRN'
-            ORDER BY timestamp DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
-        return [dict(row) for row in rows]
+# ── Daily Context ───────────────────────────────────────────────────────────
 
 def get_daily_context(scope: str | None = None, limit: int = 50) -> list[dict]:
     """Return recent daily_context entries."""
@@ -109,15 +34,62 @@ def get_daily_context(scope: str | None = None, limit: int = 50) -> list[dict]:
         try:
             if scope:
                 rows = conn.execute(
-                    "SELECT id, timestamp, scope, content FROM daily_context WHERE scope = ? ORDER BY timestamp DESC LIMIT ?",
+                    "SELECT id, timestamp, scope, content FROM daily_context "
+                    "WHERE scope = ? ORDER BY timestamp DESC LIMIT ?",
                     (scope, limit)
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT id, timestamp, scope, content FROM daily_context ORDER BY timestamp DESC LIMIT ?",
+                    "SELECT id, timestamp, scope, content FROM daily_context "
+                    "ORDER BY timestamp DESC LIMIT ?",
                     (limit,)
                 ).fetchall()
             return [dict(row) for row in rows]
         except sqlite3.OperationalError:
-            # Table might not exist yet if migration failed or DB is locked
+            return []
+
+
+# ── Learnings ───────────────────────────────────────────────────────────────
+
+def get_learnings(
+    category: str | None = None,
+    processed: bool | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Return learnings with optional filters."""
+    with _get_conn() as conn:
+        try:
+            conditions = []
+            params = []
+
+            if category:
+                conditions.append("category = ?")
+                params.append(category)
+
+            if processed is not None:
+                conditions.append("processed = ?")
+                params.append(1 if processed else 0)
+
+            where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+            params.append(limit)
+
+            rows = conn.execute(
+                f"SELECT id, timestamp, category, source, content, processed "
+                f"FROM learnings {where} ORDER BY timestamp DESC LIMIT ?",
+                params,
+            ).fetchall()
+            return [dict(row) for row in rows]
+        except sqlite3.OperationalError:
+            return []
+
+
+def get_learning_categories() -> list[str]:
+    """Return distinct learning categories."""
+    with _get_conn() as conn:
+        try:
+            rows = conn.execute(
+                "SELECT DISTINCT category FROM learnings ORDER BY category"
+            ).fetchall()
+            return [row["category"] for row in rows]
+        except sqlite3.OperationalError:
             return []

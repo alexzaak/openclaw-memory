@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import CORS_ORIGINS, API_PORT
-from routers import neural_feed, knowledge_vault, health_monitor
+from routers import neural_feed, knowledge_vault, short_term_memory
 
 # ── Logging ─────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ app.add_middleware(
 # Routers
 app.include_router(neural_feed.router)
 app.include_router(knowledge_vault.router)
-app.include_router(health_monitor.router)
+app.include_router(short_term_memory.router)
 
 
 @app.get("/api/ping")
